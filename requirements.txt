@@ -1,0 +1,12 @@
+tabulate
+colorama
+python-dotenv
+stockdex
+camelot-py
+pynvim
+ppi-client
+ghostscript
+pdfplumber>=0.7.0
+pandas>=1.3.0
+python-multipart
+matplotlib
