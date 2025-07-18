@@ -65,11 +65,9 @@ class BondAnalyzer:
                     )
                     return None
 
-    # --- MÉTODO DE CÁLCULO CORRECTO ---
     def _calculate_rates_from_api_tir(self, api_tir_as_tea: Decimal | None) -> dict:
         """
         Calcula TEM, TNA y TEA a partir de la TIR de la API, asumiendo que es una TEA.
-        Esta es la convención correcta de mercado.
         """
         if api_tir_as_tea is None or api_tir_as_tea < Decimal("-1"):
             logger.warning(

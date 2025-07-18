@@ -53,9 +53,9 @@ def run_bond_analysis_and_plotting():
     logging.info("Starting bond analysis...")
     analyzer = BondAnalyzer()
 
-    #fixed_rate_bonds = load_bond_list_from_file("data/fixed_rate.json")
-    #cer_linked_bonds = load_bond_list_from_file("data/cer_linked.json")
-    #dual_bonds = load_bond_list_from_file("data/dual_bonds.json")
+    fixed_rate_bonds = load_bond_list_from_file("data/fixed_rate.json")
+    cer_linked_bonds = load_bond_list_from_file("data/cer_linked.json")
+    dual_bonds = load_bond_list_from_file("data/dual_bonds.json")
     dolar_linked_bonds = load_bond_list_from_file("data/dolar_linked.json")
     all_analyzed_bonds = {
         "Fixed Rate": [],
@@ -101,9 +101,9 @@ def run_bond_analysis_and_plotting():
                     f" Maturity={result['maturity_date']}"
                 )
 
-    #process_bond_list(fixed_rate_bonds, "Fixed Rate")
-    #process_bond_list(cer_linked_bonds, "CER Linked")
-    #process_bond_list(dual_bonds, "Dual Bonds")
+    process_bond_list(fixed_rate_bonds, "Fixed Rate")
+    process_bond_list(cer_linked_bonds, "CER Linked")
+    process_bond_list(dual_bonds, "Dual Bonds")
     process_bond_list(dolar_linked_bonds, "Dolar Linked")
 
     logging.info("\nBond analysis completed. Generating plots...")

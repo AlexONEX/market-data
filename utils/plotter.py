@@ -68,15 +68,11 @@ def plot_time_series(
     plt.grid(True, linestyle="--", alpha=0.6)
     plt.xticks(rotation=45)
 
-    # --- CORRECCIÓN: Aplicar tight_layout antes de añadir texto y guardar ---
-    plt.tight_layout(
-        pad=3.0
-    )  # Añadimos un poco de padding para que no quede tan apretado
+    plt.tight_layout(pad=3.0)
 
-    # --- CORRECCIÓN: Añadir el texto "Fuente" ---
     plt.figtext(
         0.5,
-        0.01,  # Ligeramente ajustado para que no quede tan abajo
+        0.01,
         "Fuente: Elaboración propia en base a datos de BCRA y BYMA",
         ha="center",
         fontsize=10,
@@ -86,7 +82,6 @@ def plot_time_series(
     os.makedirs(output_dir, exist_ok=True)
     plot_path = os.path.join(output_dir, output_filename)
 
-    # --- CORRECCIÓN: Usar bbox_inches='tight' para incluir el texto de la fuente ---
     plt.savefig(plot_path, bbox_inches="tight")
     plt.close()
     logger.info(f"Plot saved to {plot_path}")
