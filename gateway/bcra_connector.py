@@ -28,13 +28,9 @@ class BCRAAPIConnector:
             response.raise_for_status()
             data = response.json()
             return data.get("results", [])
-        except requests.exceptions.RequestException as e:
-            logging.error(
-                f"Error when connecting to BCRA API"
-            )
+        except requests.exceptions.RequestException:
+            logging.error("Error when connecting to BCRA API")
             return None
         except ValueError as e:
-            logging.error(
-                f"Error when parsing api response for ID {variable_id}: {e}"
-            )
+            logging.error(f"Error when parsing api response for ID {variable_id}: {e}")
             return None
