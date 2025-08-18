@@ -204,3 +204,4 @@ __marimo__/
 .DS_Store
 plots/*
 data/*
+AGENTS.md

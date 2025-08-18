@@ -1,4 +1,5 @@
 import logging
+import datetime
 
 from gateway.bcra_connector import BCRAAPIConnector
 from utils.plotter import plot_time_series
@@ -266,7 +267,8 @@ class BCRAService:
             y_label = "Tasa (%)"
 
         # Generate a safe and readable filename
-        safe_filename = f"{description.replace(' ', '_').replace('/', '_').replace(':', '').replace('%', 'pct').replace('(', '').replace(')', '').lower()}_id{variable_id}.png"
+        safe_filename = f"{description.replace(' ', '_').replace('/', '_').replace(':', '').replace('%', 'pct').replace('(', '').replace(')', '').lower()}_id{variable_id} + datetime.datetime.now().strftime('%Y%m%d') + '.png'"
+
         safe_filename = "".join(
             c for c in safe_filename if c.isalnum() or c in ["_", "."]
         ).replace("__", "_")

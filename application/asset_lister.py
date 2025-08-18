@@ -29,15 +29,20 @@ class AssetLister:
         )  # Load existing mapping
 
     def _load_tickers_from_file(self, filename: str) -> list[str]:
-        """Loads tickers from a specified text file."""
+        """Loads tickers from a specified csv file."""
+        """First row ignored, should be 3 columns, ticker,date to maturity, and value at maturity."""
         filepath = os.path.join(self.data_dir, filename)
         tickers = []
         if os.path.exists(filepath):
             with open(filepath, "r") as f:
+                # Skip the first line it's a header
+                next(f)
                 for line in f:
-                    ticker = line.strip()
-                    if ticker:
-                        tickers.append(ticker)
+                    parts = line.strip().split(",")
+                    if len(parts) >= 1:
+                        ticker = parts[0].strip().upper()
+                        if ticker:
+                            tickers.append(ticker)
             logger.info(f"Loaded {len(tickers)} tickers from {filepath}")
         else:
             logger.warning(
@@ -145,10 +150,10 @@ class AssetLister:
         )
 
         all_tickers = []
-        all_tickers.extend(self._load_tickers_from_file("fixed_rate_tickers.txt"))
-        all_tickers.extend(self._load_tickers_from_file("dual_tamar_tickers.txt"))
-        all_tickers.extend(self._load_tickers_from_file("cer_tickers.txt"))
-        all_tickers.extend(self._load_tickers_from_file("dollar_linked_tickers.txt"))
+        all_tickers.extend(self._load_tickers_from_file("fixed_rate_tickers.csv"))
+        # all_tickers.extend(self._load_tickers_from_file("dual_tamar_tickers.txt"))
+        # all_tickers.extend(self._load_tickers_from_file("cer_tickers.txt"))
+        # all_tickers.extend(self._load_tickers_from_file("dollar_linked_tickers.txt"))
 
         categorized_assets = {asset_type: [] for asset_type in FixedIncomeAssetType}
 
