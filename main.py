@@ -36,16 +36,9 @@ def load_bond_list_from_file(filepath):
         return []
 
 
-def get_data912_market_data():
-    """Fetch market data from data912.com API."""
-    market_data = {
-        'mep_rate': None,
-        'bond_prices': {},
-        'notes_prices': {}
-    }
-    
+def get_mep_rate_from_data912():
+    """Fetch only MEP rate from data912.com API."""
     try:
-        # Get MEP rate
         logging.info("Fetching MEP rate from data912...")
         response = requests.get('https://data912.com/live/mep', timeout=10)
         if response.status_code == 200:
@@ -56,64 +49,21 @@ def get_data912_market_data():
                     close_prices.sort()
                     n = len(close_prices)
                     median = close_prices[n//2] if n % 2 == 1 else (close_prices[n//2-1] + close_prices[n//2]) / 2
-                    market_data['mep_rate'] = Decimal(str(median))
+                    mep_rate = Decimal(str(median))
                     logging.info(f"MEP rate: ${median:.2f}")
+                    return mep_rate
                 else:
                     logging.warning("No MEP close prices found in response")
-                    market_data['mep_rate'] = Decimal("1200")
             else:
                 logging.warning("Empty MEP data response")
-                market_data['mep_rate'] = Decimal("1200")
         else:
             logging.warning(f"MEP API returned status {response.status_code}")
-            market_data['mep_rate'] = Decimal("1200")
     except Exception as e:
         logging.warning(f"Error fetching MEP rate: {e}")
-        market_data['mep_rate'] = Decimal("1200")  # Default fallback
-    
-    try:
-        # Get bond prices
-        logging.info("Fetching bond prices from data912...")
-        response = requests.get('https://data912.com/live/arg_bonds', timeout=15)
-        if response.status_code == 200:
-            bonds_data = response.json()
-            if bonds_data:
-                for bond in bonds_data:
-                    symbol = bond.get('symbol')
-                    if symbol:
-                        market_data['bond_prices'][symbol] = {
-                            'price': bond.get('c'),
-                            'bid': bond.get('px_bid'),
-                            'ask': bond.get('px_ask')
-                        }
-                logging.info(f"Fetched {len(market_data['bond_prices'])} bond prices")
-    except Exception as e:
-        logging.warning(f"Error fetching bond prices: {e}")
-    
-    try:
-        # Get notes prices
-        logging.info("Fetching notes prices from data912...")
-        response = requests.get('https://data912.com/live/arg_notes', timeout=15)
-        if response.status_code == 200:
-            notes_data = response.json()
-            if notes_data:
-                for note in notes_data:
-                    symbol = note.get('symbol')
-                    if symbol:
-                        market_data['notes_prices'][symbol] = {
-                            'price': note.get('c'),
-                            'bid': note.get('px_bid'),
-                            'ask': note.get('px_ask')
-                        }
-                logging.info(f"Fetched {len(market_data['notes_prices'])} note prices")
-    except Exception as e:
-        logging.warning(f"Error fetching note prices: {e}")
-    
-    # Ensure mep_rate is never None
-    if not market_data.get('mep_rate'):
-        market_data['mep_rate'] = Decimal("1200")
-    
-    return market_data
+
+    # Default fallback
+    logging.info("Using default MEP rate: $1370")
+    return Decimal("1370")
 
 
 def run_bond_analysis_and_plotting():
@@ -136,11 +86,10 @@ def run_bond_analysis_and_plotting():
     logging.info("Initializing analysis components...")
     bond_loader = BondDataLoader()
     irr_calculator = IRRCalculator(bond_loader)
-    bond_analyzer = BondAnalyzer()
+    # bond_analyzer = BondAnalyzer()  # Temporarily disabled due to PPI connection issues
     
-    # --- Step 2: Fetch market data from data912 ---
-    logging.info("Fetching live market data from data912.com...")
-    market_data = get_data912_market_data()
+    # --- Step 2: Fetch MEP rate from data912 ---
+    mep_rate = get_mep_rate_from_data912()
     
     # --- Step 3: Get all bonds from CSV files ---
     all_bonds = bond_loader.get_all_bonds()
@@ -150,6 +99,8 @@ def run_bond_analysis_and_plotting():
     analysis_results = {
         'fixed_rate': [],
         'cer_linked': [],
+        'lecaps': [],
+        'dollar_linked': [],
         'dual_bonds': []
     }
     
@@ -157,49 +108,125 @@ def run_bond_analysis_and_plotting():
     carry_trade_results = []
     missing_tickers = []  # Track tickers not found in any API
     
-    mep_rate = market_data.get('mep_rate') or Decimal("1200")
-    usd_scenarios = [1000, 1100, 1200, 1300, 1400]
+    usd_scenarios = [1200, 1300, 1400, 1500, 1600, 1700]
     
     logging.info("Analyzing bonds with live market data...")
     
     for ticker, bond_info in all_bonds.items():
         try:
-            # Get price from data912 first, fallback to PPI
+            # Get price and TIR from bonistas.com + ecovalores.com (unified approach)
+            from services.bonistas_service import BonistasService
+            from services.ecovalores_service import EcovaloresService
+
+            bonistas_service = BonistasService()
+            ecovalores_service = EcovaloresService()
+
+            bond_data = None
+            source = "none"
             price = None
-            source = "unknown"
-            data912_bond = market_data['bond_prices'].get(ticker)
-            data912_note = market_data['notes_prices'].get(ticker)
-            
-            if data912_bond and data912_bond.get('price'):
-                price = Decimal(str(data912_bond['price']))
-                source = "data912_bonds"
-            elif data912_note and data912_note.get('price'):
-                price = Decimal(str(data912_note['price']))
-                source = "data912_notes"
-            else:
-                # Fallback to PPI
+
+            # Try bonistas.com first (for all types including LECAPs, CER, etc.)
+            bond_data = bonistas_service.get_bond_tir(ticker)
+            if bond_data and bond_data.get('tir'):
+                source = "bonistas.com"
+                price = bond_data.get('price')  # Try to get price from bonistas too
+
+                # If no price from bonistas, try ecovalores for price only
+                if not price:
+                    eco_data = ecovalores_service.get_bond_data(ticker)
+                    if eco_data and eco_data.get('price'):
+                        price = eco_data['price']
+                        source = "bonistas.com(TIR)+ecovalores.com(price)"
+
+            # If bonistas failed completely, try ecovalores
+            if not bond_data or not bond_data.get('tir'):
+                logging.info(f"Bonistas failed for {ticker}, trying ecovalores.com")
+                bond_data = ecovalores_service.get_bond_data(ticker)
+                if bond_data and bond_data.get('tir'):
+                    source = "ecovalores.com"
+                    price = bond_data.get('price')
+
+            # Final fallback: use data912 price + calculated TIR for LECAPs
+            if (not bond_data or not bond_data.get('tir') or not price) and bond_info['bond_type'] == 'lecaps':
+                logging.info(f"Trying data912 fallback for LECAP {ticker}")
+
+                # Get data912 market data for fallback
                 try:
-                    from services.ppi_service import PPIService
-                    ppi_service = PPIService()
-                    price_data = ppi_service.get_price(ticker, "BONOS")
-                    if price_data and price_data.get("price"):
-                        price = Decimal(str(price_data["price"]))
-                        source = "ppi"
-                    else:
-                        missing_tickers.append(f"{ticker} - No price data from data912 or PPI")
-                        continue
+                    import requests
+                    # Get bond prices from data912
+                    response = requests.get('https://data912.com/live/arg_bonds', timeout=10)
+                    data912_bonds = response.json() if response.status_code == 200 else []
+
+                    # Get notes prices from data912
+                    response = requests.get('https://data912.com/live/arg_notes', timeout=10)
+                    data912_notes = response.json() if response.status_code == 200 else []
+
+                    # Find ticker in data912 data
+                    data912_bond = next((b for b in data912_bonds if b.get('symbol') == ticker), None)
+                    data912_note = next((n for n in data912_notes if n.get('symbol') == ticker), None)
                 except Exception as e:
-                    logging.warning(f"Could not fetch price for {ticker} from PPI: {e}")
-                    missing_tickers.append(f"{ticker} - PPI error: {str(e)}")
-                    continue
-            
-            if not price or bond_info['days_to_maturity'] <= 0:
+                    logging.warning(f"Error fetching data912 for {ticker}: {e}")
+                    data912_bond = data912_note = None
+
+                if data912_bond and data912_bond.get('price'):
+                    price = Decimal(str(data912_bond['price']))
+                    source = "data912_bonds"
+                elif data912_note and data912_note.get('price'):
+                    price = Decimal(str(data912_note['price']))
+                    source = "data912_notes"
+
+                # If we have price, calculate TIR
+                if price and bond_info['days_to_maturity'] > 0:
+                    final_payoff = bond_info['final_payoff']
+
+                    # Calculate TIR using financial math
+                    try:
+                        tir_calc = irr_calculator.calculate_irr_for_bond_with_info(ticker, price, bond_info)
+                        if tir_calc and tir_calc['rates']['TIR']:
+                            bond_data = {
+                                'ticker': ticker,
+                                'tir': tir_calc['rates']['TIR'],
+                                'price': price,
+                                'source': f'{source}_calculated_tir'
+                            }
+                            source = f"{source}(calculated_TIR)"
+                            logging.info(f"Calculated TIR for {ticker}: {tir_calc['rates']['TIR']:.1%}")
+                    except Exception as e:
+                        logging.warning(f"Could not calculate TIR for {ticker}: {e}")
+
+            # Final validation
+            if not bond_data or not bond_data.get('tir') or not price:
+                missing_reason = []
+                if not bond_data or not bond_data.get('tir'):
+                    missing_reason.append("no TIR")
+                if not price:
+                    missing_reason.append("no price")
+                missing_tickers.append(f"{ticker} - {' and '.join(missing_reason)} from bonistas/ecovalores/data912")
                 continue
-            
-            # Calculate IRR
-            irr_result = irr_calculator.calculate_irr_for_bond(ticker, price)
-            if not irr_result or not irr_result['rates']['TIR']:
+
+            if bond_info['days_to_maturity'] <= 0:
                 continue
+
+            # Create result with real TIR
+            tir = bond_data['tir']
+            tea = tir  # For bonds, TIR ≈ TEA
+            tem = (Decimal("1") + tir) ** (Decimal("1") / Decimal("12")) - Decimal("1")
+
+            irr_result = {
+                'ticker': ticker,
+                'bond_type': bond_info['bond_type'],
+                'maturity_date': bond_info['maturity_date'],
+                'days_to_maturity': bond_info['days_to_maturity'],
+                'final_payoff': bond_info['final_payoff'],
+                'current_price': price,
+                'rates': {
+                    'TIR': tir,
+                    'TEA': tea,
+                    'TEM': tem,
+                    'TNA': tem * Decimal("12")
+                },
+                'real_tir_source': source
+            }
             
             # Store IRR results
             irr_results[ticker] = {
@@ -210,20 +237,32 @@ def run_bond_analysis_and_plotting():
             # Calculate carry trade scenarios
             if mep_rate:
                 final_payoff = bond_info['final_payoff']
-                bond_return_ratio = final_payoff / price
-                
+
                 carry_scenarios = {}
                 for usd_rate in usd_scenarios:
-                    carry_return = bond_return_ratio * mep_rate / Decimal(str(usd_rate)) - Decimal("1")
+                    # Correct carry trade calculation:
+                    # 1. Buy bond: pay 'price' ARS
+                    # 2. Convert to USD today: get (price / mep_rate) USD
+                    # 3. At maturity: receive 'final_payoff' ARS
+                    # 4. Convert to USD at future rate: get (final_payoff / future_usd_rate) USD
+                    # Return = (USD_received / USD_invested) - 1
+
+                    usd_invested = price / mep_rate
+                    usd_received = final_payoff / Decimal(str(usd_rate))
+                    carry_return = (usd_received / usd_invested) - Decimal("1")
                     carry_scenarios[f"usd_{usd_rate}"] = carry_return
-                
-                # Worst case scenario
+
+                # Worst case scenario: USD appreciates with inflation
                 days_ratio = Decimal(str(bond_info['days_to_maturity'])) / Decimal("30")
                 worst_case_usd = Decimal("1400") * (Decimal("1.01") ** days_ratio)
-                carry_worst = bond_return_ratio * mep_rate / worst_case_usd - Decimal("1")
-                
-                # MEP breakeven
-                mep_breakeven = mep_rate * bond_return_ratio
+                usd_invested_worst = price / mep_rate
+                usd_received_worst = final_payoff / worst_case_usd
+                carry_worst = (usd_received_worst / usd_invested_worst) - Decimal("1")
+
+                # MEP breakeven: future USD rate where carry return = 0
+                # 0 = (final_payoff / breakeven_rate) / (price / mep_rate) - 1
+                # breakeven_rate = final_payoff * mep_rate / price
+                mep_breakeven = final_payoff * mep_rate / price
                 
                 carry_trade_results.append({
                     'ticker': ticker,
@@ -247,13 +286,9 @@ def run_bond_analysis_and_plotting():
     
     # --- Step 5: Display Results ---
     print(f"\nANALYSIS SUMMARY:")
-    if mep_rate:
-        print(f"MEP Rate: ${mep_rate:.2f}")
-    else:
-        print(f"MEP Rate: Not available (using default $1200)")
-        mep_rate = Decimal("1200")
+    print(f"MEP Rate: ${mep_rate:.2f}")
     print(f"Total bonds analyzed: {len(irr_results)}")
-    print(f"Data sources: data912 bonds/notes, PPI fallback")
+    print(f"Data sources: bonistas.com, ecovalores.com, data912.com fallback")
     
     # Display IRR results by bond type
     for bond_type, bonds in analysis_results.items():
@@ -289,7 +324,7 @@ def run_bond_analysis_and_plotting():
         for scenario in usd_scenarios:
             print(f"${scenario:<6}", end=" ")
         print(f"{'Worst':<8} {'Breakeven':<10} {'Source':<8}")
-        print("-" * 100)
+        print("-" * 110)
         
         for result in carry_trade_results[:15]:  # Top 15
             ticker = result['ticker']
@@ -400,11 +435,13 @@ def run_bond_analysis_and_plotting():
         import datetime as dt
         date_suffix = dt.datetime.now().strftime("%Y%m%d")
         
-        # Plot configurations for each bond type
+        # Plot configurations for each bond type with currency indication
         curve_configs = [
-            ("fixed_rate", "Curva IRR - Bonos de Tasa Fija", f"fixed_rate_irr_curve_{date_suffix}.png"),
-            ("cer_linked", "Curva IRR - Bonos CER", f"cer_irr_curve_{date_suffix}.png"),
-            ("dual_bonds", "Curva IRR - Bonos Duales", f"dual_bonds_irr_curve_{date_suffix}.png"),
+            ("fixed_rate", "Curva TIR - Bonos de Tasa Fija (USD)", f"fixed_rate_irr_curve_{date_suffix}.png"),
+            ("cer_linked", "Curva TIR - Bonos CER (ARS + inflación)", f"cer_irr_curve_{date_suffix}.png"),
+            ("lecaps", "Curva TIR - LECAPs (ARS)", f"lecaps_irr_curve_{date_suffix}.png"),
+            ("dollar_linked", "Curva TIR - Bonos Dollar Linked (USD)", f"dollar_linked_irr_curve_{date_suffix}.png"),
+            ("dual_bonds", "Curva TIR - Bonos Duales", f"dual_bonds_irr_curve_{date_suffix}.png"),
         ]
         
         for bond_type, plot_title, filename in curve_configs:
@@ -490,35 +527,76 @@ def run_bond_analysis_and_plotting():
                     weight="bold"
                 )
             
+            # Currency-specific Y-axis labels
+            currency_labels = {
+                "fixed_rate": "TIR [%] - Rendimiento en USD",
+                "cer_linked": "TIR [%] - Rendimiento en ARS + Inflación",
+                "lecaps": "TIR [%] - Rendimiento en ARS",
+                "dollar_linked": "TIR [%] - Rendimiento en USD",
+                "dual_bonds": "TIR [%] - Rendimiento Dual"
+            }
+
             # Styling
             plt.title(
-                f"{plot_title} - IRR vs. Días a Vencimiento ({date_suffix})",
+                f"{plot_title} - TIR vs. Días a Vencimiento ({date_suffix})",
                 fontsize=18,
                 pad=20,
                 weight="bold"
             )
             plt.xlabel("Días a Vencimiento", fontsize=14, labelpad=15)
-            plt.ylabel("TIR (Tasa Interna de Retorno) [%]", fontsize=14, labelpad=15)
+            plt.ylabel(currency_labels.get(bond_type, "TIR [%]"), fontsize=14, labelpad=15)
             plt.grid(True, linestyle="--", alpha=0.5, zorder=0)
             plt.tick_params(axis="both", which="major", labelsize=12)
             
-            # Format y-axis as percentage
-            plt.gca().yaxis.set_major_formatter(FormatStrFormatter("%.1f%%"))
-            
-            # Set limits with some padding
+            # Check if we need logarithmic scale (high TIR variation)
+            y_ratio = y_data.max() / y_data.min() if y_data.min() > 0 else 1
+            use_log_scale = y_ratio > 3.0  # Use log scale if max/min ratio > 3
+
+            if use_log_scale:
+                plt.yscale('log')
+                # Custom formatter for log scale percentages
+                from matplotlib.ticker import FuncFormatter
+                def percent_formatter(x, pos):
+                    return f"{x:.1f}%"
+                plt.gca().yaxis.set_major_formatter(FuncFormatter(percent_formatter))
+
+                # Log scale limits
+                y_min = max(1, y_data.min() * 0.8)  # Don't go below 1%
+                y_max = y_data.max() * 1.2
+                plt.ylim(y_min, y_max)
+
+                # Add note about log scale
+                plt.text(0.02, 0.98, "Escala logarítmica", transform=plt.gca().transAxes,
+                        fontsize=10, verticalalignment='top',
+                        bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
+            else:
+                # Linear scale
+                plt.gca().yaxis.set_major_formatter(FormatStrFormatter("%.1f%%"))
+
+                # Set limits with some padding
+                y_padding = (y_data.max() - y_data.min()) * 0.1
+                plt.ylim(max(0, y_data.min() - y_padding), y_data.max() + y_padding)
+
+            # X-axis limits (always linear)
             x_padding = (x_data.max() - x_data.min()) * 0.1
-            y_padding = (y_data.max() - y_data.min()) * 0.1
-            
             plt.xlim(max(0, x_data.min() - x_padding), x_data.max() + x_padding)
-            plt.ylim(max(0, y_data.min() - y_padding), y_data.max() + y_padding)
             
             plt.tight_layout(pad=3.0)
             
+            # Currency-specific footers
+            currency_footers = {
+                "fixed_rate": "Bonos USD: TIR en dólares estadounidenses | Fuente: bonistas.com, ecovalores.com",
+                "cer_linked": "Bonos CER: TIR en pesos + ajuste inflacionario | Fuente: bonistas.com, ecovalores.com",
+                "lecaps": "LECAPs: TIR en pesos argentinos | Fuente: bonistas.com, ecovalores.com",
+                "dollar_linked": "Dollar Linked: TIR en dólares | Fuente: bonistas.com, ecovalores.com",
+                "dual_bonds": "Bonos Duales: TIR variable | Fuente: bonistas.com, ecovalores.com"
+            }
+
             # Add footer
             plt.figtext(
                 0.5,
                 0.01,
-                "Fuente: Elaboración propia en base a datos de data912.com y PPI",
+                currency_footers.get(bond_type, "Fuente: bonistas.com, ecovalores.com"),
                 ha="center",
                 fontsize=10,
                 color="dimgray",
@@ -676,7 +754,7 @@ def display_bcra_menu():
         print(f"Found prices for {len(prices)} bonds.")
         
         # Calculate carry trade returns
-        usd_scenarios = [1000, 1100, 1200, 1300, 1400]
+        usd_scenarios = [1200, 1300, 1400, 1500, 1600, 1700]
         results = []
         
         for ticker in tickers:

@@ -209,8 +209,10 @@ class BondDataLoader:
         # Load different types of bonds
         bond_files = [
             ("fixed_rate_tickers.csv", "fixed_rate"),
-            ("cer_tickers.csv", "cer_linked"), 
-            ("tamar_tickers.csv", "dual_bonds")
+            ("cer_tickers.csv", "cer_linked"),
+            ("tamar_tickers.csv", "dual_bonds"),
+            ("lecaps_tickers.csv", "lecaps"),
+            ("dollar_linked_tickers.csv", "dollar_linked")
         ]
         
         for filename, bond_type in bond_files:
@@ -246,17 +248,21 @@ class IRRCalculator:
         if not bond_info:
             logger.warning(f"No bond data found for ticker: {ticker}")
             return None
-            
+
+        return self.calculate_irr_for_bond_with_info(ticker, current_price, bond_info)
+
+    def calculate_irr_for_bond_with_info(self, ticker: str, current_price: Union[Decimal, float], bond_info: Dict) -> Optional[Dict]:
+        """Calculate IRR for a specific bond given its current market price and bond info."""
         if bond_info['days_to_maturity'] <= 0:
             logger.warning(f"Bond {ticker} has already matured or invalid maturity date")
             return None
-        
+
         rates = self.calculator.calculate_irr_from_price_and_payoff(
             current_price=current_price,
             final_payoff=bond_info['final_payoff'],
             days_to_maturity=bond_info['days_to_maturity']
         )
-        
+
         return {
             **bond_info,
             'current_price': Decimal(str(current_price)),
