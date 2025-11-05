@@ -145,60 +145,51 @@ class PuenteNetFetcher:
         """
         Parsea los datos crudos de flujos de fondos de PuenteNet.
         """
-        # logging.debug(f"Raw data received by parse_cashflows: {raw_data}") # Removed after debugging
-
         if not raw_data or not isinstance(raw_data, dict):
             logging.warning("Datos crudos de flujo de fondos inválidos o vacíos.")
             return []
 
-        # Verificar si hay errores reportados por PuenteNet
         errores = raw_data.get("errores")
         if errores and isinstance(errores, list) and len(errores) > 0:
             for error in errores:
                 logging.warning(f"PuenteNet reportó un error: {error}")
             return []
 
-        # Acceder a los flujos de fondos bajo la clave de moneda
-        cashflows_by_currency = raw_data.get("mapFlujosDTO", {})
-
         target_cashflows = None
-        # Prioridad: USD, luego ARS, luego PESOS, luego la primera clave disponible
-        for currency_key in ["USD", "ARS", "PESOS"]:
-            target_cashflows = cashflows_by_currency.get(currency_key)
-            if target_cashflows:
-                logging.debug(f"Found cashflows under key: {currency_key}")
-                break
+        
+        # 1. Try with mapFlujosDTO (new format for some tickers)
+        cashflows_by_currency = raw_data.get("mapFlujosDTO", {})
+        if cashflows_by_currency and isinstance(cashflows_by_currency, dict):
+            for currency_key in ["USD", "ARS", "PESOS"]:
+                target_cashflows = cashflows_by_currency.get(currency_key)
+                if target_cashflows:
+                    break
+            if not target_cashflows and cashflows_by_currency:
+                first_currency_key = list(cashflows_by_currency.keys())[0]
+                target_cashflows = cashflows_by_currency.get(first_currency_key)
 
-        if not target_cashflows and cashflows_by_currency:
-            first_currency_key = list(cashflows_by_currency.keys())[0]
-            target_cashflows = cashflows_by_currency.get(first_currency_key)
-            logging.debug(f"Fallback to first available key: {first_currency_key}")
+        # 2. Fallback to flujosMapDTO
+        if not target_cashflows:
+            target_cashflows = raw_data.get("flujosMapDTO", [])
 
         if not target_cashflows or not isinstance(target_cashflows, list):
             logging.warning(
-                f"La estructura de la respuesta de PuenteNet no contiene flujos esperados. mapFlujosDTO: {cashflows_by_currency}"
+                f"La estructura de la respuesta de PuenteNet no contiene flujos esperados. Respuesta: {raw_data}"
             )
             return []
 
         parsed = []
         for cf in target_cashflows:
             try:
-                # fechaPago es un timestamp en milisegundos
                 timestamp_ms = cf.get("fechaPago")
                 if timestamp_ms is None:
                     logging.warning(f"Flujo de fondos sin fechaPago: {cf}")
                     continue
 
-                # Convertir milisegundos a segundos y luego a datetime.date
                 payment_date = datetime.fromtimestamp(timestamp_ms / 1000).date()
-
                 amortization = Decimal(str(cf.get("importeAmortizacion", "0")))
                 interest = Decimal(str(cf.get("importeRenta", "0")))
                 total_payment = Decimal(str(cf.get("importe", "0")))
-
-                # Asegurarse de que el total_payment sea la suma de amortización e interés
-                # o usar el importe directamente si es más fiable.
-                # Por ahora, usaremos el 'importe' directamente como el total.
 
                 if total_payment > 0:
                     parsed.append(
@@ -215,6 +206,5 @@ class PuenteNetFetcher:
                 )
                 continue
 
-        # Ordenar los flujos de caja por fecha
         parsed.sort(key=lambda x: x["date"])
         return parsed
