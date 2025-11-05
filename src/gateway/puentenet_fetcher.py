@@ -1,9 +1,9 @@
 import logging
 import csv
 import os
-from datetime import date, datetime
+from datetime import datetime
 from decimal import Decimal
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
 
 import requests
 from requests.exceptions import RequestException

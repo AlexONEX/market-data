@@ -1,13 +1,11 @@
 import csv
 import logging
-from datetime import date, datetime
+from datetime import date
 from decimal import Decimal
-from typing import Any
 
 import requests
 from requests.exceptions import RequestException
 import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
 
 from src.domain.financial_math import calculate_tir
 from src.gateway.puentenet_fetcher import PuenteNetFetcher
