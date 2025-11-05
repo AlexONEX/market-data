@@ -107,13 +107,37 @@ def plot_yield_curve(bond_data: list[dict], title: str, filename: str, today: da
         # Smooth curve
         if len(times) > 2:
             try:
-                # More robust polynomial fitting
-                deg = min(3, len(times) - 1)
-                p = np.polyfit(times, rates, deg)
-                f = np.poly1d(p)
-                t_smooth = np.linspace(times.min(), times.max(), 300)
-                rate_smooth = f(t_smooth)
-                plt.plot(t_smooth, rate_smooth, label=f'{label} Curve', color=color)
+                # Exclude S16E6 from smoothing if it's an outlier in LECAP/BONCAP
+                if is_lecap:
+                    # Find the index of S16E6
+                    s16e6_index = -1
+                    for i, p in enumerate(points):
+                        if p["ticker"] == "S16E6":
+                            s16e6_index = i
+                            break
+                    
+                    if s16e6_index != -1:
+                        # Create new arrays excluding S16E6
+                        times_for_fit = np.delete(times, s16e6_index)
+                        rates_for_fit = np.delete(rates, s16e6_index)
+                    else:
+                        times_for_fit = times
+                        rates_for_fit = rates
+                else:
+                    times_for_fit = times
+                    rates_for_fit = rates
+
+                if len(times_for_fit) > 2: # Ensure enough points for fitting after exclusion
+                    deg = 2 if is_lecap else min(3, len(times_for_fit) - 1)
+                    p = np.polyfit(times_for_fit, rates_for_fit, deg)
+                    f = np.poly1d(p)
+                    t_smooth = np.linspace(times.min(), times.max(), 300)
+                    rate_smooth = f(t_smooth)
+                    plt.plot(t_smooth, rate_smooth, label=f'{label} Curve', color=color)
+                else:
+                    # Fallback to simple line if not enough points for fitting
+                    plt.plot(times, rates, linestyle='--', color=color, alpha=0.7)
+
             except np.linalg.LinAlgError:
                 # Fallback to simple line if fitting fails
                 plt.plot(times, rates, linestyle='--', color=color, alpha=0.7)
