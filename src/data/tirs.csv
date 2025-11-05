@@ -1,0 +1,19 @@
+Ticker,Tipo,Precio,TIR (%),Fecha Vencimiento
+AL30D,hard_dollar,63.38,12.13,2030-07-09
+GD30D,hard_dollar,66.49,9.73,2030-07-09
+AL29D,hard_dollar,66.10,12.29,2029-07-09
+GD29D,hard_dollar,69.69,9.01,2029-07-09
+AE38D,hard_dollar,73.70,11.57,2038-01-09
+AL35D,hard_dollar,71.14,11.04,2035-07-09
+GD35D,hard_dollar,73.00,10.56,2035-07-09
+AL41D,hard_dollar,66.07,10.99,2041-07-09
+GD38D,hard_dollar,76.20,10.84,2038-01-09
+S10N5,lecap_boncap,121.78,102.78,2025-11-10
+S16E6,lecap_boncap,116.00,14.11,2026-01-16
+S28N5,lecap_boncap,121.49,30.68,2025-11-28
+T30E6,lecap_boncap,132.35,35.70,2026-01-30
+T30J6,lecap_boncap,119.15,35.15,2026-06-30
+T15D5,lecap_boncap,165.78,31.50,2025-12-15
+T15E7,lecap_boncap,116.65,26.12,2027-01-15
+T30J6,lecap_boncap,119.15,35.15,2026-06-30
+TY30P,lecap_boncap,116.35,29.98,2030-05-30

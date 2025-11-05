@@ -1,7 +1,7 @@
 import logging
 
-from gateway.bcra_connector import BCRAAPIConnector
-from utils.plotter import plot_time_series
+from src.gateway.bcra_connector import BCRAAPIConnector
+from src.utils.plotter import plot_time_series
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
