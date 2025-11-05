@@ -9,7 +9,7 @@ import requests
 from requests.exceptions import RequestException
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO) # Revert to INFO level
+logger.setLevel(logging.INFO)  # Revert to INFO level
 
 
 class PuenteNetFetcher:
@@ -32,24 +32,28 @@ class PuenteNetFetcher:
         if not os.path.exists(self.CASHFLOW_CSV):
             return
 
-        with open(self.CASHFLOW_CSV, mode='r', newline='') as file:
+        with open(self.CASHFLOW_CSV, mode="r", newline="") as file:
             reader = csv.DictReader(file)
             for row in reader:
-                ticker = row['Ticker']
-                payment_date = datetime.strptime(row['PaymentDate'], "%Y-%m-%d").date()
-                total_payment = Decimal(row['TotalPayment'])
-                amortization = Decimal(row['Amortization'])
-                interest = Decimal(row['Interest'])
+                ticker = row["Ticker"]
+                payment_date = datetime.strptime(row["PaymentDate"], "%Y-%m-%d").date()
+                total_payment = Decimal(row["TotalPayment"])
+                amortization = Decimal(row["Amortization"])
+                interest = Decimal(row["Interest"])
 
                 if ticker not in self._cashflow_cache:
                     self._cashflow_cache[ticker] = []
-                self._cashflow_cache[ticker].append({
-                    "date": payment_date,
-                    "total_payment": total_payment,
-                    "amortization": amortization,
-                    "interest": interest,
-                })
-        logging.info(f"Cargados {len(self._cashflow_cache)} tickers con flujos de fondos desde {self.CASHFLOW_CSV}")
+                self._cashflow_cache[ticker].append(
+                    {
+                        "date": payment_date,
+                        "total_payment": total_payment,
+                        "amortization": amortization,
+                        "interest": interest,
+                    }
+                )
+        logging.info(
+            f"Cargados {len(self._cashflow_cache)} tickers con flujos de fondos desde {self.CASHFLOW_CSV}"
+        )
 
     def _save_cashflows_to_csv(self, ticker: str, cashflows: List[Dict[str, Any]]):
         """
@@ -59,22 +63,34 @@ class PuenteNetFetcher:
         file_exists = os.path.exists(self.CASHFLOW_CSV)
         is_empty = not file_exists or os.stat(self.CASHFLOW_CSV).st_size == 0
 
-        with open(self.CASHFLOW_CSV, mode='a', newline='') as file:
+        with open(self.CASHFLOW_CSV, mode="a", newline="") as file:
             writer = csv.writer(file)
             if is_empty:
-                writer.writerow(["Ticker", "PaymentDate", "TotalPayment", "Amortization", "Interest"])
-            
+                writer.writerow(
+                    [
+                        "Ticker",
+                        "PaymentDate",
+                        "TotalPayment",
+                        "Amortization",
+                        "Interest",
+                    ]
+                )
+
             for cf in cashflows:
-                writer.writerow([
-                    ticker,
-                    cf["date"].isoformat(),
-                    str(cf["total_payment"]),
-                    str(cf["amortization"]),
-                    str(cf["interest"]),
-                ])
+                writer.writerow(
+                    [
+                        ticker,
+                        cf["date"].isoformat(),
+                        str(cf["total_payment"]),
+                        str(cf["amortization"]),
+                        str(cf["interest"]),
+                    ]
+                )
         logging.info(f"Flujos de fondos para {ticker} guardados en {self.CASHFLOW_CSV}")
 
-    def get_cashflows(self, ticker: str, nominal_value: int = 100) -> List[Dict[str, Any]]:
+    def get_cashflows(
+        self, ticker: str, nominal_value: int = 100
+    ) -> List[Dict[str, Any]]:
         """
         Obtiene los flujos de fondos para un ticker dado, primero desde el caché/CSV,
         luego desde PuenteNet si no se encuentran.
@@ -83,7 +99,9 @@ class PuenteNetFetcher:
             logging.info(f"Flujos de fondos para {ticker} encontrados en caché/CSV.")
             return self._cashflow_cache[ticker]
 
-        logging.info(f"Flujos de fondos para {ticker} no encontrados en caché/CSV. Intentando obtener de PuenteNet...")
+        logging.info(
+            f"Flujos de fondos para {ticker} no encontrados en caché/CSV. Intentando obtener de PuenteNet..."
+        )
         raw_data = self._fetch_from_puentenet(ticker, nominal_value)
         if raw_data:
             parsed_cashflows = self.parse_cashflows(raw_data)
@@ -102,19 +120,25 @@ class PuenteNetFetcher:
         headers = {
             "Content-Type": "application/json",
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36",
-            "Referer": self.BASE_URL + self.CASHFLOW_ENDPOINT.split('/calcular')[0]
+            "Referer": self.BASE_URL + self.CASHFLOW_ENDPOINT.split("/calcular")[0],
         }
 
         try:
             response = requests.post(url, json=payload, headers=headers, timeout=15)
             response.raise_for_status()
-            logging.info(f"Datos de flujo de fondos obtenidos para {ticker} de PuenteNet.")
+            logging.info(
+                f"Datos de flujo de fondos obtenidos para {ticker} de PuenteNet."
+            )
             return response.json()
         except RequestException as e:
-            logging.error(f"Error al obtener flujos de fondos para {ticker} de PuenteNet: {e}")
+            logging.error(
+                f"Error al obtener flujos de fondos para {ticker} de PuenteNet: {e}"
+            )
             return None
         except ValueError:
-            logging.error(f"Error al decodificar el JSON de PuenteNet para {ticker}. Respuesta: {response.text if response else 'No response'}")
+            logging.error(
+                f"Error al decodificar el JSON de PuenteNet para {ticker}. Respuesta: {response.text if response else 'No response'}"
+            )
             return None
 
     def parse_cashflows(self, raw_data: Any) -> List[Dict[str, Any]]:
@@ -136,7 +160,7 @@ class PuenteNetFetcher:
 
         # Acceder a los flujos de fondos bajo la clave de moneda
         cashflows_by_currency = raw_data.get("mapFlujosDTO", {})
-        
+
         target_cashflows = None
         # Prioridad: USD, luego ARS, luego PESOS, luego la primera clave disponible
         for currency_key in ["USD", "ARS", "PESOS"]:
@@ -144,14 +168,16 @@ class PuenteNetFetcher:
             if target_cashflows:
                 logging.debug(f"Found cashflows under key: {currency_key}")
                 break
-        
+
         if not target_cashflows and cashflows_by_currency:
             first_currency_key = list(cashflows_by_currency.keys())[0]
             target_cashflows = cashflows_by_currency.get(first_currency_key)
             logging.debug(f"Fallback to first available key: {first_currency_key}")
 
         if not target_cashflows or not isinstance(target_cashflows, list):
-            logging.warning(f"La estructura de la respuesta de PuenteNet no contiene flujos esperados. mapFlujosDTO: {cashflows_by_currency}")
+            logging.warning(
+                f"La estructura de la respuesta de PuenteNet no contiene flujos esperados. mapFlujosDTO: {cashflows_by_currency}"
+            )
             return []
 
         parsed = []
@@ -162,10 +188,10 @@ class PuenteNetFetcher:
                 if timestamp_ms is None:
                     logging.warning(f"Flujo de fondos sin fechaPago: {cf}")
                     continue
-                
+
                 # Convertir milisegundos a segundos y luego a datetime.date
                 payment_date = datetime.fromtimestamp(timestamp_ms / 1000).date()
-                
+
                 amortization = Decimal(str(cf.get("importeAmortizacion", "0")))
                 interest = Decimal(str(cf.get("importeRenta", "0")))
                 total_payment = Decimal(str(cf.get("importe", "0")))
@@ -173,18 +199,22 @@ class PuenteNetFetcher:
                 # Asegurarse de que el total_payment sea la suma de amortización e interés
                 # o usar el importe directamente si es más fiable.
                 # Por ahora, usaremos el 'importe' directamente como el total.
-                
+
                 if total_payment > 0:
-                    parsed.append({
-                        "date": payment_date,
-                        "amortization": amortization,
-                        "interest": interest,
-                        "total_payment": total_payment,
-                    })
+                    parsed.append(
+                        {
+                            "date": payment_date,
+                            "amortization": amortization,
+                            "interest": interest,
+                            "total_payment": total_payment,
+                        }
+                    )
             except (ValueError, TypeError) as e:
-                logging.warning(f"Error al parsear un flujo de fondos: {cf}. Error: {e}")
+                logging.warning(
+                    f"Error al parsear un flujo de fondos: {cf}. Error: {e}"
+                )
                 continue
-        
+
         # Ordenar los flujos de caja por fecha
         parsed.sort(key=lambda x: x["date"])
         return parsed

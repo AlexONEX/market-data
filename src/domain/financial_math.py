@@ -1,6 +1,7 @@
 """
 Módulo para cálculos financieros y matemáticos.
 """
+
 from datetime import date
 from decimal import Decimal, getcontext, InvalidOperation, DivisionByZero
 import logging
@@ -9,7 +10,8 @@ import logging
 getcontext().prec = 50
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO) # Revert to INFO level
+logger.setLevel(logging.INFO)  # Revert to INFO level
+
 
 def calculate_tir(
     cashflows: list[tuple[date, Decimal]], price: Decimal, settlement_date: date
@@ -42,7 +44,9 @@ def calculate_tir(
             pass
 
     if not future_cashflows:
-        logger.debug("calculate_tir: No hay flujos de caja futuros después de la fecha de liquidación.")
+        logger.debug(
+            "calculate_tir: No hay flujos de caja futuros después de la fecha de liquidación."
+        )
         return None
 
     # Estructurar los datos para el cálculo
@@ -51,8 +55,8 @@ def calculate_tir(
 
     # Función NPV(rate)
     def npv(rate):
-        if Decimal("1.0") + rate <= 0: 
-            return Decimal('NaN')
+        if Decimal("1.0") + rate <= 0:
+            return Decimal("NaN")
         total_npv = Decimal("0.0")
         for i in range(len(dates)):
             days = Decimal((dates[i] - settlement_date).days)
@@ -60,28 +64,26 @@ def calculate_tir(
             try:
                 total_npv += amounts[i] / ((Decimal("1.0") + rate) ** exponent)
             except InvalidOperation:
-                return Decimal('NaN') 
+                return Decimal("NaN")
         return total_npv - price
 
     # Derivada de la función NPV con respecto a la tasa
     def d_npv(rate):
-        if Decimal("1.0") + rate <= 0: 
-            return Decimal('NaN')
+        if Decimal("1.0") + rate <= 0:
+            return Decimal("NaN")
         total_d_npv = Decimal("0.0")
         for i in range(len(dates)):
             days = Decimal((dates[i] - settlement_date).days)
             exponent = days / Decimal("365.0")
             try:
-                denominator = (Decimal("1.0") + rate)
+                denominator = Decimal("1.0") + rate
                 if denominator == 0:
-                    return Decimal('NaN')
+                    return Decimal("NaN")
                 total_d_npv -= (
-                    amounts[i]
-                    * exponent
-                    / (denominator ** (exponent + Decimal("1.0")))
+                    amounts[i] * exponent / (denominator ** (exponent + Decimal("1.0")))
                 )
             except (InvalidOperation, DivisionByZero):
-                return Decimal('NaN') 
+                return Decimal("NaN")
         return total_d_npv
 
     # Implementación del método de Newton-Raphson
@@ -90,14 +92,18 @@ def calculate_tir(
         npv_val = npv(guess)
         d_npv_val = d_npv(guess)
 
-        logger.debug(f"Iter {i}: Guess={guess:.6f}, NPV={npv_val:.6f}, dNPV={d_npv_val:.6f}")
+        logger.debug(
+            f"Iter {i}: Guess={guess:.6f}, NPV={npv_val:.6f}, dNPV={d_npv_val:.6f}"
+        )
 
         if npv_val.is_nan() or d_npv_val.is_nan():
             logger.debug("calculate_tir: NaN detectado en NPV o dNPV.")
-            return None 
+            return None
 
         if abs(npv_val) < Decimal("1e-9"):  # Convergencia
-            logger.debug(f"calculate_tir: Convergencia alcanzada en {i} iteraciones. TIR={guess:.6f}")
+            logger.debug(
+                f"calculate_tir: Convergencia alcanzada en {i} iteraciones. TIR={guess:.6f}"
+            )
             return guess
 
         if d_npv_val == 0:  # No se puede continuar
@@ -107,8 +113,10 @@ def calculate_tir(
         new_guess = guess - npv_val / d_npv_val
         guess = new_guess
 
-    logger.debug("calculate_tir: No se encontró convergencia después de 100 iteraciones.")
-    return None 
+    logger.debug(
+        "calculate_tir: No se encontró convergencia después de 100 iteraciones."
+    )
+    return None
 
 
 def convert_tirea_to_tem(tirea_anual: Decimal) -> Decimal:
