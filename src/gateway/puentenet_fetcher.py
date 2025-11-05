@@ -156,7 +156,7 @@ class PuenteNetFetcher:
             return []
 
         target_cashflows = None
-        
+
         # 1. Try with mapFlujosDTO (new format for some tickers)
         cashflows_by_currency = raw_data.get("mapFlujosDTO", {})
         if cashflows_by_currency and isinstance(cashflows_by_currency, dict):
