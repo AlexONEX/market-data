@@ -27,7 +27,7 @@ class ReportFormatter:
             ["Name", overview.get("name", "N/A")],
             ["Sector", overview.get("sector", "N/A")],
             ["Industry", overview.get("industry", "N/A")],
-            ["Employees", f"{overview.get('fullTimeEmployees', 'N/A'):,}"],
+            ["Employees", self._format_number(overview.get('fullTimeEmployees'))],
             ["Website", overview.get("website", "N/A")],
             [],
             ["Key Metrics"],
@@ -128,7 +128,7 @@ class ReportFormatter:
             for metric_name, metric_data in metrics.items():
                 value = metric_data["value"]
                 metric_type = metric_data["type"]
-                formatted = self.extractor.format_value(value, metric_type)
+                formatted = self.extractor._format_value(value, metric_type)
 
                 rows.append([metric_name, formatted, metric_type])
 

@@ -107,7 +107,7 @@ def main():
         output_file = output_dir / f"{args.ticker.lower()}_{args.period}.json"
 
         with open(output_file, "w") as f:
-            json.dump(data_to_save, f, indent=2, default=str)
+            json.dump(data_to_save, f, indent=2)
 
         print(f"JSON to {output_file.resolve().relative_to(Path.cwd())}")
 
@@ -130,11 +130,10 @@ def main():
                 sheet_count += 1
 
         print(
-            f"Generated {sheet_count} sheets in {sheets_dir.relative_to(Path.cwd())}/"
+            f"Generated {sheet_count} sheets in {sheets_dir.resolve().relative_to(Path.cwd())}/"
         )
-        print(
-            f"\nData sources: {', '.join(s for s in financial_data.get('sources', {}).values() if s)}"
-        )
+        sources_list = ', '.join(s for s in financial_data.get('sources', {}).values() if s)
+        print(f"\nData sources: {sources_list}")
 
         return 0
 
@@ -144,6 +143,8 @@ def main():
 
     except Exception as e:
         print(f"✗ Error: {e}")
+        import traceback
+        traceback.print_exc()
         logger.debug(e, exc_info=True)
         return 1
 
