@@ -8,11 +8,13 @@ def clean_column_name(col_name: str) -> str:
     - Converts to lowercase
     - Removes parentheses and percentage signs
     - Replaces spaces, slashes, and hyphens with underscores
+    - Removes any non-alphanumeric characters except underscore
     - Removes any trailing or leading underscores
 
     Example:
         "Revenue Growth (YoY)" -> "revenue_growth_yoy"
         "Debt / Equity Ratio" -> "debt_equity_ratio"
+
     """
     if not isinstance(col_name, str):
         return ""
@@ -29,7 +31,5 @@ def clean_column_name(col_name: str) -> str:
     # Remove any non-alphanumeric characters except underscore
     cleaned = re.sub(r"[^a-z0-9_]", "", cleaned)
 
-    # Remove leading/trailing underscores
-    cleaned = cleaned.strip("_")
-
-    return cleaned
+    # Remove leading/trailing underscores and return directly
+    return cleaned.strip("_")

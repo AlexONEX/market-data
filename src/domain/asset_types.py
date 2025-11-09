@@ -15,4 +15,5 @@ class FixedIncomeAssetType(Enum):
         for member in FixedIncomeAssetType:
             if member.value.lower() == s.lower():
                 return member
-        raise ValueError(f"'{s}' is not a valid FixedIncomeAssetType")
+        error_message = f"'{s}' is not a valid FixedIncomeAssetType" # EM102
+        raise ValueError(error_message)

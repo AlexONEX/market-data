@@ -1,7 +1,7 @@
 import logging
-import os
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -11,6 +11,9 @@ from matplotlib.ticker import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Constant for magic value 2
+MIN_DATA_POINTS_FOR_CURVE = 2
 
 
 def plot_time_series(
@@ -23,7 +26,7 @@ def plot_time_series(
     output_dir: str = "plots",
 ):
     if not data_list:
-        logger.warning(f"No data to plot for '{plot_title}'. Skipping plot generation.")
+        logger.warning("No data to plot for '%s'. Skipping plot generation.", plot_title)
         return
 
     df = pd.DataFrame(data_list)
@@ -32,12 +35,12 @@ def plot_time_series(
         df[date_col] = pd.to_datetime(df[date_col])
         df[value_col] = pd.to_numeric(df[value_col])
     except KeyError as e:
-        logger.error(
-            f"Required columns '{date_col}' or '{value_col}' not found in data: {e}"
+        logger.exception(
+            "Required columns '%s' or '%s' not found in data: %s", date_col, value_col, e
         )
         return
     except ValueError as e:
-        logger.error(f"Error converting data to numeric/date format: {e}")
+        logger.exception("Error converting data to numeric/date format: %s", e)
         return
 
     df = df.sort_values(by=date_col)
@@ -68,21 +71,22 @@ def plot_time_series(
         color="dimgray",
     )
 
-    os.makedirs(output_dir, exist_ok=True)
-    plot_path = os.path.join(output_dir, output_filename)
+    output_path_dir = Path(output_dir)
+    output_path_dir.mkdir(parents=True, exist_ok=True)
+    plot_path = output_path_dir / output_filename
 
     plt.savefig(plot_path, bbox_inches="tight")
     plt.close()
-    logger.info(f"Plot saved to {plot_path}")
+    logger.info("Plot saved to %s", plot_path)
 
 
 def plot_tem_vs_days_to_maturity(
-    bond_data_list: list, plot_title: str, output_filename: str
+    bond_data_list: list, plot_title: str, output_filename: str, output_dir: str = "plots" # F821
 ):
     days_to_maturity = []
     tem_values = []
     labels = []
-    current_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    current_date = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
 
     for bond in bond_data_list:
         maturity_date_str = bond.get("maturity_date")
@@ -91,7 +95,7 @@ def plot_tem_vs_days_to_maturity(
 
         if maturity_date_str and maturity_date_str != "N/A" and tem is not None:
             try:
-                maturity_date = datetime.strptime(maturity_date_str, "%Y-%m-%d")
+                maturity_date = datetime.strptime(maturity_date_str, "%Y-%m-%d").replace(tzinfo=UTC)
                 delta = maturity_date - current_date
 
                 if delta.days > 0:
@@ -100,55 +104,47 @@ def plot_tem_vs_days_to_maturity(
                     labels.append(ticker)
                 else:
                     logger.warning(
-                        f"Skipping {ticker}: Maturity date is in the past or today ({maturity_date_str})."
+                        "Skipping %s: Maturity date is in the past or today (%s).", ticker, maturity_date_str
                     )
             except ValueError:
                 logger.warning(
-                    f"Could not parse maturity date for {ticker}: {maturity_date_str}. Skipping."
+                    "Could not parse maturity date for %s: %s. Skipping.", ticker, maturity_date_str
                 )
         else:
             logger.warning(
-                f"Skipping {ticker}: Missing maturity date ({maturity_date_str}) or TEM ({tem})."
+                "Skipping %s: Missing maturity date (%s) or TEM (%s).", ticker, maturity_date_str, tem
             )
 
-    if len(days_to_maturity) < 2:  # Necesitamos al menos 2 puntos para una curva
+    if len(days_to_maturity) < MIN_DATA_POINTS_FOR_CURVE:
         logger.info(
-            f"Not enough valid data points (found {len(days_to_maturity)}) to plot for '{plot_title}'. Skipping."
+            "Not enough valid data points (found %d) to plot for '%s'. Skipping.", len(days_to_maturity), plot_title
         )
         return
 
-    # No es necesario ordenar aquí si solo vamos a ajustar una curva,
-    # pero es bueno para las etiquetas.
-    sorted_data = sorted(zip(days_to_maturity, tem_values, labels))
-    days_to_maturity_sorted, tem_values_sorted, labels_sorted = zip(*sorted_data)
+    sorted_data = sorted(zip(days_to_maturity, tem_values, labels, strict=True))
+    days_to_maturity_sorted, tem_values_sorted, labels_sorted = zip(*sorted_data, strict=True)
 
     x_data = np.array(days_to_maturity_sorted)
     y_data = np.array(tem_values_sorted)
 
-    plt.figure(figsize=(16, 9))  # Ajustado para un aspect ratio más panorámico
+    plt.figure(figsize=(16, 9))
 
-    # --- 2. DIBUJAR LOS PUNTOS ORIGINALES COMO SCATTER PLOT ---
     plt.scatter(
         x_data,
         y_data,
         color="skyblue",
         edgecolor="darkblue",
-        s=80,  # Tamaño de los marcadores
-        zorder=5,  # Poner los puntos por encima de la curva y la grilla
+        s=80,
+        zorder=5,
     )
 
-    # --- 3. CALCULAR Y DIBUJAR LA CURVA SUAVIZADA ---
-    # Solo intentar ajustar la curva si hay suficientes puntos para el grado del polinomio
-    if len(x_data) > 2:
-        # Ajuste polinómico de grado 2 (una parábola)
+    if len(x_data) > MIN_DATA_POINTS_FOR_CURVE:
         z = np.polyfit(x_data, y_data, 2)
         p = np.poly1d(z)
 
-        # Generar puntos X suaves para una curva continua
         x_smooth = np.linspace(x_data.min(), x_data.max(), 300)
         y_smooth = p(x_smooth)
 
-        # Dibujar la línea de la curva
         plt.plot(
             x_smooth,
             y_smooth,
@@ -156,10 +152,9 @@ def plot_tem_vs_days_to_maturity(
             linestyle="-",
             linewidth=2,
             alpha=0.8,
-            zorder=3,  # Poner la línea por debajo de los puntos
+            zorder=3,
         )
 
-    # --- Anotar las etiquetas de los tickers ---
     for i, txt in enumerate(labels_sorted):
         plt.annotate(
             txt,
@@ -171,9 +166,8 @@ def plot_tem_vs_days_to_maturity(
             color="dimgray",
         )
 
-    # --- Estilo y etiquetas del gráfico ---
     plt.title(
-        f"{plot_title} - TEM vs. Días a Vencimiento ({current_date.strftime('%Y-%m-%d')})",
+        f"{plot_title} - TEM vs. Días a Vencimiento ({current_date.strftime('%Y-%m-%d')})", # UP031
         fontsize=18,
         pad=20,
     )
@@ -183,7 +177,6 @@ def plot_tem_vs_days_to_maturity(
     plt.tick_params(axis="both", which="major", labelsize=12)
     plt.gca().yaxis.set_major_formatter(FormatStrFormatter("%.2f%%"))
 
-    # Ajustar límites para dar más espacio
     plt.xlim(0, x_data.max() * 1.1)
 
     plt.tight_layout(pad=3.0)
@@ -197,10 +190,10 @@ def plot_tem_vs_days_to_maturity(
         color="dimgray",
     )
 
-    output_dir = "plots"
-    os.makedirs(output_dir, exist_ok=True)
-    plot_path = os.path.join(output_dir, output_filename)
+    output_path_dir = Path(output_dir)
+    output_path_dir.mkdir(parents=True, exist_ok=True)
+    plot_path = output_path_dir / output_filename
 
     plt.savefig(plot_path, bbox_inches="tight", dpi=150)
     plt.close()
-    logger.info(f"Smooth curve plot saved to {plot_path}")
+    logger.info("Smooth curve plot saved to %s", plot_path)

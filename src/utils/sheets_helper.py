@@ -6,14 +6,20 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
+# Constant for batch writing threshold
+BATCH_WRITE_THRESHOLD = 500
+
 
 class SheetsWriter:
     def __init__(self, credentials_path: str):
         try:
             self.gc = gspread.service_account(filename=credentials_path)
             logger.info("Connected to Google Sheets API")
+        except gspread.exceptions.ServiceAccountError as e:
+            logger.exception("Failed to connect to Google Sheets: %s", e)
+            self.gc = None
         except Exception as e:
-            logger.error(f"Failed to connect to Google Sheets: {e}")
+            logger.exception("An unexpected error occurred during Google Sheets connection: %s", e)
             self.gc = None
 
     def get_or_create_spreadsheet(
@@ -25,33 +31,36 @@ class SheetsWriter:
 
         try:
             if spreadsheet_id:
-                logger.info(f"Opening existing spreadsheet (ID: {spreadsheet_id})")
+                logger.info("Opening existing spreadsheet (ID: %s)", spreadsheet_id)
                 return self.gc.open_by_key(spreadsheet_id)
-            logger.info(f"Creating new spreadsheet: {spreadsheet_name}")
+            logger.info("Creating new spreadsheet: %s", spreadsheet_name)
             return self.gc.create(spreadsheet_name)
+        except gspread.exceptions.SpreadsheetNotFound as e:
+            logger.exception("Spreadsheet not found: %s", e)
+            return None
         except Exception as e:
-            logger.error(f"Failed to get/create spreadsheet: {e}")
+            logger.exception("Failed to get/create spreadsheet: %s", e)
             return None
 
     def _get_or_create_worksheet(
         self,
         spreadsheet: Any,
         sheet_name: str,
-        overwrite: bool,
-        default_rows: int,
-        default_cols: int,
+        overwrite: bool = False,
+        default_rows: int = 1000,
+        default_cols: int = 26,
     ) -> Any:
         try:
             worksheet = spreadsheet.worksheet(sheet_name)
             if overwrite:
                 worksheet.clear()
-                logger.info(f"Cleared worksheet: {sheet_name}")
+                logger.info("Cleared worksheet: %s", sheet_name)
             return worksheet
         except gspread.exceptions.WorksheetNotFound:
             worksheet = spreadsheet.add_worksheet(
                 title=sheet_name, rows=default_rows, cols=default_cols
             )
-            logger.info(f"Created worksheet: {sheet_name}")
+            logger.info("Created worksheet: %s", sheet_name)
             return worksheet
 
     def write_dataframe(
@@ -69,27 +78,27 @@ class SheetsWriter:
             worksheet = self._get_or_create_worksheet(
                 spreadsheet,
                 sheet_name,
-                overwrite,
-                len(df) + 100,
-                len(df.columns) + 10,
+                overwrite=overwrite,
+                default_rows=len(df) + 100,
+                default_cols=len(df.columns) + 10,
             )
 
             # Convert DataFrame to list of lists for gspread
-            data = [df.columns.tolist()] + df.values.tolist()
+            data = [df.columns.tolist()] + df.to_numpy().tolist()
 
             # Write data in batches if large
-            if len(data) > 500:
-                logger.info(f"Writing {len(data)} rows (may take a moment)...")
+            if len(data) > BATCH_WRITE_THRESHOLD:
+                logger.info("Writing %d rows (may take a moment)...", len(data))
                 worksheet.batch_clear(["A1:Z10000"])  # Clear large range
                 worksheet.append_rows(data, table_range="A1")
             else:
                 worksheet.append_rows(data, table_range="A1")
 
-            logger.info(f"Written {len(df)} rows to '{sheet_name}'")
+            logger.info("Written %d rows to '%s'", len(df), sheet_name)
             return True
 
         except Exception as e:
-            logger.error(f"Failed to write to worksheet: {e}")
+            logger.exception("Failed to write to worksheet: %s", e)
             return False
 
     def write_sections(
@@ -105,7 +114,7 @@ class SheetsWriter:
 
         try:
             worksheet = self._get_or_create_worksheet(
-                spreadsheet, sheet_name, overwrite, 5000, 50
+                spreadsheet, sheet_name, overwrite=overwrite, default_rows=5000, default_cols=50
             )
 
             # Build combined data with section headers
@@ -115,15 +124,15 @@ class SheetsWriter:
                     continue
 
                 # Add section header
-                all_data.append([f"=== {section_name.upper()} ==="])
+                all_data.append([f"=== {section_name.upper()} ==="]) # UP031
                 all_data.append([])
 
                 # Add column headers
                 all_data.append(df.columns.tolist())
 
                 # Add data rows
-                for _, row in df.iterrows():
-                    all_data.append(row.tolist())
+                for _, row_data in df.iterrows():
+                    all_data.append(row_data.tolist())
 
                 # Add spacing
                 all_data.append([])
@@ -132,13 +141,13 @@ class SheetsWriter:
             if all_data:
                 worksheet.batch_clear(["A1:Z10000"])
                 worksheet.append_rows(all_data, table_range="A1")
-                logger.info(f"Written {len(sections)} sections to '{sheet_name}'")
+                logger.info("Written %d sections to '%s'", len(sections), sheet_name)
                 return True
-            logger.warning(f"No data to write to '{sheet_name}'")
+            logger.warning("No data to write to '%s'", sheet_name)
             return False
 
         except Exception as e:
-            logger.error(f"Failed to write sections: {e}")
+            logger.exception("Failed to write sections: %s", e)
             return False
 
     def write_metadata(
@@ -153,20 +162,20 @@ class SheetsWriter:
 
         try:
             worksheet = self._get_or_create_worksheet(
-                spreadsheet, sheet_name, True, 200, 20
+                spreadsheet, sheet_name, overwrite=True, default_rows=200, default_cols=20
             )
 
             # Convert metadata to rows
             data = []
-            for key, value in metadata.items():
-                if isinstance(value, (list, dict)):
-                    value = str(value)
-                data.append([str(key), str(value)])
+            for key, value_item in metadata.items():
+                if isinstance(value_item, (list, dict)):
+                    value_item = str(value_item)
+                data.append([str(key), str(value_item)])
 
             worksheet.append_rows(data, table_range="A1")
-            logger.info(f"Written metadata to '{sheet_name}'")
+            logger.info("Written metadata to '%s'", sheet_name)
             return True
 
         except Exception as e:
-            logger.error(f"Failed to write metadata: {e}")
+            logger.exception("Failed to write metadata: %s", e)
             return False

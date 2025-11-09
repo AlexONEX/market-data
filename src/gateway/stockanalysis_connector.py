@@ -1,9 +1,11 @@
 import logging
 import re
-from typing import Any
+from typing import Any, ClassVar  # Added ClassVar for RUF012
 
 import pandas as pd
+import requests  # Moved to top as per PLC0415
 from bs4 import BeautifulSoup
+from requests.exceptions import RequestException
 
 from src.utils.helpers import clean_column_name
 
@@ -11,8 +13,8 @@ logger = logging.getLogger(__name__)
 
 
 class StockanalysisConnector:
-    BASE_URL = "https://stockanalysis.com/stocks"
-    HEADERS = {"User-Agent": "Mozilla/5.0"}
+    BASE_URL: ClassVar[str] = "https://stockanalysis.com/stocks"
+    HEADERS: ClassVar[dict[str, str]] = {"User-Agent": "Mozilla/5.0"}
 
     def __init__(self, ticker: str):
         self.ticker = ticker.upper()
@@ -64,20 +66,21 @@ class StockanalysisConnector:
             df.index = [clean_column_name(name) for name in df.index]
 
             return df
-        except Exception as e:
-            logger.debug(f"Failed to get or clean table from {url}: {e}")
+        except RequestException as e: # BLE001
+            logger.debug("Failed to get or clean table from %s: %s", url, e) # G004
+            return None
+        except Exception as e: # Catch any other unexpected exceptions
+            logger.debug("An unexpected error occurred while getting/cleaning table from %s: %s", url, e)
             return None
 
     def get_overview(self) -> dict[str, Any]:
         url = f"{self.base_url}/"
         try:
-            import requests
-
             response = requests.get(url, headers=self.HEADERS, timeout=10)
             response.raise_for_status()
             soup = BeautifulSoup(response.content, "html.parser")
-        except Exception as e:
-            logger.debug(f"Failed to fetch overview page {url}: {e}")
+        except RequestException as e:
+            logger.debug("Failed to fetch overview page %s: %s", url, e)
             return {"ticker": self.ticker}
 
         overview_data = {"ticker": self.ticker, "url": url}
@@ -103,8 +106,8 @@ class StockanalysisConnector:
                 if match:
                     value = match.group(1)
                     overview_data[key] = self._parse_number(value)
-        except Exception as e:
-            logger.debug(f"Error extracting overview data with regex: {e}")
+        except Exception as e: # BLE001
+            logger.debug("Error extracting overview data with regex: %s", e) # G004
         return overview_data
 
     def get_income_statement(self, period: str = "quarterly") -> pd.DataFrame | None:
@@ -136,7 +139,11 @@ class StockanalysisConnector:
         try:
             tables = pd.read_html(url, storage_options=self.HEADERS)
             return tables[0] if tables else None
-        except Exception:
+        except RequestException as e: # BLE001
+            logger.debug("Failed to get dividends from %s: %s", url, e) # G004
+            return None
+        except Exception as e: # Catch any other unexpected exceptions
+            logger.debug("An unexpected error occurred while getting dividends from %s: %s", url, e)
             return None
 
     def get_all_data(self, period: str = "quarterly") -> dict[str, Any]:

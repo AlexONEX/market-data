@@ -2,7 +2,9 @@ import logging
 from typing import Any
 
 import pandas as pd
+import requests  # Moved to top as per PLC0415
 import yfinance as yf
+from requests.exceptions import HTTPError, RequestException
 
 from src.gateway.stockanalysis_connector import StockanalysisConnector
 
@@ -92,21 +94,21 @@ class FinancialDataService:
     def _get_from_stockanalysis(self, ticker: str, period: str) -> dict[str, Any]:
         try:
             connector = StockanalysisConnector(ticker)
-            data = connector.get_all_data(period=period)
-            return data
-        except Exception as e:
-            logger.debug(f"Failed to fetch from stockanalysis.com: {e}")
+            return connector.get_all_data(period=period)
+        except Exception as e: # BLE001
+            logger.debug("Failed to fetch from stockanalysis.com: %s", e)
             return {}
 
     def _get_from_yfinance(self, ticker: str, period: str) -> dict[str, Any]:
         try:
             stock = yf.Ticker(ticker)
             overview = {}
+
             try:
                 if hasattr(stock, "info"):
                     overview = stock.info if isinstance(stock.info, dict) else {}
-            except Exception:
-                pass
+            except Exception as e: # BLE001, S110
+                logger.debug("Failed to get overview from yfinance: %s", e)
 
             income_stmt = None
             try:
@@ -114,8 +116,8 @@ class FinancialDataService:
                     income_stmt = stock.income_stmt
                 elif period == "quarterly" and hasattr(stock, "quarterly_income_stmt"):
                     income_stmt = stock.quarterly_income_stmt
-            except Exception:
-                pass
+            except Exception as e: # BLE001, S110
+                logger.debug("Failed to get income statement from yfinance: %s", e)
 
             balance_sheet = None
             try:
@@ -125,8 +127,8 @@ class FinancialDataService:
                     stock, "quarterly_balance_sheet"
                 ):
                     balance_sheet = stock.quarterly_balance_sheet
-            except Exception:
-                pass
+            except Exception as e: # BLE001, S110
+                logger.debug("Failed to get balance sheet from yfinance: %s", e)
 
             cash_flow = None
             try:
@@ -134,10 +136,10 @@ class FinancialDataService:
                     cash_flow = stock.cashflow
                 elif period == "quarterly" and hasattr(stock, "quarterly_cashflow"):
                     cash_flow = stock.quarterly_cashflow
-            except Exception:
-                pass
+            except Exception as e: # BLE001, S110
+                logger.debug("Failed to get cash flow from yfinance: %s", e)
 
-            data = {
+            return { # RET504, TRY300
                 "overview": overview,
                 "income_statement": income_stmt,
                 "balance_sheet": balance_sheet,
@@ -145,10 +147,8 @@ class FinancialDataService:
                 "ratios": None,
             }
 
-            return data
-
-        except Exception as e:
-            logger.debug(f"Failed to fetch from yfinance: {e}")
+        except Exception as e: # BLE001
+            logger.debug("Failed to fetch from yfinance: %s", e)
             return {}
 
     def _get_peers_from_fmp(self, ticker: str) -> list[str] | None:
@@ -156,8 +156,6 @@ class FinancialDataService:
             return None
 
         try:
-            import requests
-
             url = "https://financialmodelingprep.com/stable/stock-peers"
             params = {"symbol": ticker, "apikey": self.fmp_api_key}
 
@@ -167,9 +165,15 @@ class FinancialDataService:
             peers_data = response.json()
             if isinstance(peers_data, dict) and "peersList" in peers_data:
                 return peers_data["peersList"]
-
+            # TRY300
             return None
 
-        except Exception as e:
-            logger.debug(f"Failed to fetch peers from FMP: {e}")
+        except (RequestException, HTTPError) as e: # BLE001
+            logger.debug("Failed to fetch peers from FMP: %s", e)
+            return None
+        except ValueError as e: # For JSON decoding errors
+            logger.debug("Failed to decode FMP peers JSON: %s", e)
+            return None
+        except Exception as e: # Catch any other unexpected exceptions
+            logger.debug("An unexpected error occurred while fetching FMP peers: %s", e)
             return None
