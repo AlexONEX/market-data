@@ -124,12 +124,19 @@ def main():
         sheet_count = 0
         for sheet_name, df in sheets.items():
             if df is not None and not df.empty:
-                sheet_file = sheets_dir / f"{args.ticker.lower()}_{sheet_name.lower().replace(' ', '_')}.csv"
+                sheet_file = (
+                    sheets_dir
+                    / f"{args.ticker.lower()}_{sheet_name.lower().replace(' ', '_')}.csv"
+                )
                 df.to_csv(sheet_file, index=False)
                 sheet_count += 1
 
-        print(f"✓ Generated {sheet_count} sheets in {sheets_dir.relative_to(Path.cwd())}/")
-        print(f"\nData sources: {', '.join(s for s in financial_data.get('sources', {}).values() if s)}")
+        print(
+            f"✓ Generated {sheet_count} sheets in {sheets_dir.relative_to(Path.cwd())}/"
+        )
+        print(
+            f"\nData sources: {', '.join(s for s in financial_data.get('sources', {}).values() if s)}"
+        )
 
         return 0
 

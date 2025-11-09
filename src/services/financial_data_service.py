@@ -28,19 +28,9 @@ class FinancialDataService:
     def get_company_data(
         self, ticker: str, period: str = "quarterly"
     ) -> dict[str, Any]:
-        """Get all company financial data using multi-source strategy.
+        """Get all company financial data.
 
-        Strategy:
-        1. Try stockanalysis.com first (has most comprehensive data)
-        2. Fall back to yfinance for missing data
-        3. Use FMP only for peer comparison
-
-        Args:
-            ticker: Stock ticker symbol
-            period: 'annual' or 'quarterly'
-
-        Returns:
-            Dictionary with all financial data
+        Strategy: stockanalysis.com → yfinance → FMP (peers)
         """
         result = {
             "ticker": ticker,
@@ -55,45 +45,44 @@ class FinancialDataService:
             },
         }
 
-        # Try stockanalysis.com first
         sa_data = self._get_from_stockanalysis(ticker, period)
-
-        # Fall back to yfinance for missing data
         yf_data = self._get_from_yfinance(ticker, period)
 
-        # Merge data (stockanalysis takes precedence)
-        # For overview (dict)
         result["overview"] = sa_data.get("overview") or yf_data.get("overview")
 
-        # For DataFrames, check if not None and not empty
         sa_income = sa_data.get("income_statement")
         result["income_statement"] = (
-            sa_income if (sa_income is not None and not sa_income.empty)
+            sa_income
+            if (sa_income is not None and not sa_income.empty)
             else yf_data.get("income_statement")
         )
 
         sa_balance = sa_data.get("balance_sheet")
         result["balance_sheet"] = (
-            sa_balance if (sa_balance is not None and not sa_balance.empty)
+            sa_balance
+            if (sa_balance is not None and not sa_balance.empty)
             else yf_data.get("balance_sheet")
         )
 
         sa_cashflow = sa_data.get("cash_flow")
         result["cash_flow"] = (
-            sa_cashflow if (sa_cashflow is not None and not sa_cashflow.empty)
+            sa_cashflow
+            if (sa_cashflow is not None and not sa_cashflow.empty)
             else yf_data.get("cash_flow")
         )
 
         result["ratios"] = sa_data.get("ratios")
 
-        # Get peers from FMP if available
         if self.fmp_api_key:
             result["peers"] = self._get_peers_from_fmp(ticker)
 
-        # Track which sources were used
-        result["sources"]["overview"] = "stockanalysis" if sa_data.get("overview") else "yfinance"
+        result["sources"]["overview"] = (
+            "stockanalysis" if sa_data.get("overview") else "yfinance"
+        )
         result["sources"]["income_statement"] = (
-            "stockanalysis" if sa_data.get("income_statement") is not None else "yfinance"
+            "stockanalysis"
+            if sa_data.get("income_statement") is not None
+            else "yfinance"
         )
         result["sources"]["balance_sheet"] = (
             "stockanalysis" if sa_data.get("balance_sheet") is not None else "yfinance"
@@ -101,11 +90,14 @@ class FinancialDataService:
         result["sources"]["cash_flow"] = (
             "stockanalysis" if sa_data.get("cash_flow") is not None else "yfinance"
         )
-        # For ratios, check if it's a non-empty DataFrame
         ratios_data = sa_data.get("ratios")
         result["sources"]["ratios"] = (
             "stockanalysis"
-            if (ratios_data is not None and isinstance(ratios_data, pd.DataFrame) and not ratios_data.empty)
+            if (
+                ratios_data is not None
+                and isinstance(ratios_data, pd.DataFrame)
+                and not ratios_data.empty
+            )
             else None
         )
 
@@ -113,18 +105,8 @@ class FinancialDataService:
 
         return result
 
-    def _get_from_stockanalysis(
-        self, ticker: str, period: str
-    ) -> dict[str, Any]:
-        """Fetch data from stockanalysis.com.
-
-        Args:
-            ticker: Stock ticker
-            period: 'annual' or 'quarterly'
-
-        Returns:
-            Dictionary with available data
-        """
+    def _get_from_stockanalysis(self, ticker: str, period: str) -> dict[str, Any]:
+        """Fetch data from stockanalysis.com."""
         try:
             connector = StockanalysisConnector(ticker)
             data = connector.get_all_data(period=period)
@@ -133,22 +115,10 @@ class FinancialDataService:
             logger.debug(f"Failed to fetch from stockanalysis.com: {e}")
             return {}
 
-    def _get_from_yfinance(
-        self, ticker: str, period: str
-    ) -> dict[str, Any]:
-        """Fetch data from yfinance as fallback.
-
-        Args:
-            ticker: Stock ticker
-            period: 'annual' or 'quarterly'
-
-        Returns:
-            Dictionary with available data
-        """
+    def _get_from_yfinance(self, ticker: str, period: str) -> dict[str, Any]:
+        """Fetch data from yfinance as fallback."""
         try:
             stock = yf.Ticker(ticker)
-
-            # Try to get data
             overview = {}
             try:
                 if hasattr(stock, "info"):
@@ -169,7 +139,9 @@ class FinancialDataService:
             try:
                 if period == "annual" and hasattr(stock, "balance_sheet"):
                     balance_sheet = stock.balance_sheet
-                elif period == "quarterly" and hasattr(stock, "quarterly_balance_sheet"):
+                elif period == "quarterly" and hasattr(
+                    stock, "quarterly_balance_sheet"
+                ):
                     balance_sheet = stock.quarterly_balance_sheet
             except Exception:
                 pass
@@ -198,14 +170,7 @@ class FinancialDataService:
             return {}
 
     def _get_peers_from_fmp(self, ticker: str) -> list[str] | None:
-        """Fetch peer companies from FMP API.
-
-        Args:
-            ticker: Stock ticker
-
-        Returns:
-            List of peer tickers or None
-        """
+        """Fetch peer companies from FMP API."""
         if not self.fmp_api_key:
             return None
 

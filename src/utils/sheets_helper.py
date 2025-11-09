@@ -200,7 +200,9 @@ class SheetsWriter:
                 worksheet = spreadsheet.worksheet(sheet_name)
                 worksheet.clear()
             except gspread.exceptions.WorksheetNotFound:
-                worksheet = spreadsheet.add_worksheet(title=sheet_name, rows=200, cols=20)
+                worksheet = spreadsheet.add_worksheet(
+                    title=sheet_name, rows=200, cols=20
+                )
 
             # Convert metadata to rows
             data = []

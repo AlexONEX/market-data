@@ -80,9 +80,7 @@ class ReportFormatter:
             "Net Income",
         ]
 
-        filtered_data = income_stmt.loc[
-            income_stmt.index.isin(key_metrics), :
-        ].copy()
+        filtered_data = income_stmt.loc[income_stmt.index.isin(key_metrics), :].copy()
 
         # Format the data
         for col in filtered_data.columns:
@@ -140,9 +138,7 @@ class ReportFormatter:
             "Free Cash Flow",
         ]
 
-        filtered_data = cash_flow.loc[
-            cash_flow.index.isin(key_metrics), :
-        ].copy()
+        filtered_data = cash_flow.loc[cash_flow.index.isin(key_metrics), :].copy()
 
         # Format the data
         for col in filtered_data.columns:

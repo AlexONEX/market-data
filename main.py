@@ -197,7 +197,9 @@ def plot_yield_curve(bond_data: list[dict], title: str, filename: str, today: da
                         argentinian_law_bonds.append(point)
 
         _plot_single_curve(global_bonds, "Global Bonds", "blue", is_lecap)
-        _plot_single_curve(argentinian_law_bonds, "Argentinian Law Bonds", "green", is_lecap)
+        _plot_single_curve(
+            argentinian_law_bonds, "Argentinian Law Bonds", "green", is_lecap
+        )
         plt.legend()
 
     else:

@@ -115,14 +115,10 @@ class PuenteNetFetcher:
         try:
             response = requests.post(url, json=payload, headers=headers, timeout=15)
             response.raise_for_status()
-            logging.info(
-                f"Cash flow data for {ticker} obtained from PuenteNet."
-            )
+            logging.info(f"Cash flow data for {ticker} obtained from PuenteNet.")
             return response.json()
         except RequestException as e:
-            logging.error(
-                f"Error fetching cash flows for {ticker} from PuenteNet: {e}"
-            )
+            logging.error(f"Error fetching cash flows for {ticker} from PuenteNet: {e}")
             return None
         except ValueError:
             logging.error(
@@ -171,7 +167,9 @@ class PuenteNetFetcher:
                     logging.warning(f"Cash flow without payment date: {cf}")
                     continue
 
-                payment_date = datetime.fromtimestamp(payment_date_timestamp / 1000).date()
+                payment_date = datetime.fromtimestamp(
+                    payment_date_timestamp / 1000
+                ).date()
                 amortization_amount = Decimal(str(cf.get("importeAmortizacion", "0")))
                 interest_amount = Decimal(str(cf.get("importeRenta", "0")))
                 total_amount = Decimal(str(cf.get("importe", "0")))
@@ -186,9 +184,7 @@ class PuenteNetFetcher:
                         }
                     )
             except (ValueError, TypeError) as e:
-                logging.warning(
-                    f"Error parsing a cash flow: {cf}. Error: {e}"
-                )
+                logging.warning(f"Error parsing a cash flow: {cf}. Error: {e}")
                 continue
 
         parsed.sort(key=lambda x: x["date"])

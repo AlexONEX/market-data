@@ -73,27 +73,19 @@ class MetricExtractor:
         return results
 
     def _extract_metric(self, metric_def: MetricDefinition) -> Any:
-        """Extract a single metric value using fallback keys.
-
-        Args:
-            metric_def: MetricDefinition to extract
-
-        Returns:
-            Extracted value or None if not found
-        """
-        # Try primary key
+        """Extract a single metric value using fallback keys."""
         value = self._get_nested_value(metric_def.data_key)
         if value is not None:
             return value
 
-        # Try alternative keys
         for alt_key in metric_def.alt_keys:
             value = self._get_nested_value(alt_key)
             if value is not None:
                 return value
 
-        # Not found
-        logger.debug(f"Metric '{metric_def.name}' not found with keys: {metric_def.data_key}, {metric_def.alt_keys}")
+        logger.debug(
+            f"Metric '{metric_def.name}' not found with keys: {metric_def.data_key}, {metric_def.alt_keys}"
+        )
         return None
 
     def _get_nested_value(self, key_path: str) -> Any:
@@ -116,7 +108,6 @@ class MetricExtractor:
             if isinstance(current, dict):
                 current = current.get(part)
             elif isinstance(current, pd.DataFrame):
-                # For DataFrames, the part is the row name
                 try:
                     current = current.loc[part]
                 except KeyError:
@@ -130,21 +121,12 @@ class MetricExtractor:
         return current
 
     def format_value(self, value: Any, metric_type: str) -> str:
-        """Format a value for display based on metric type.
-
-        Args:
-            value: Value to format
-            metric_type: Type of metric (currency, percentage, ratio, etc)
-
-        Returns:
-            Formatted string
-        """
+        """Format a value for display based on metric type."""
         if value is None or (isinstance(value, float) and pd.isna(value)):
             return "N/A"
 
         try:
             if metric_type == "currency":
-                # Convert millions to billions if needed
                 if isinstance(value, (int, float)):
                     if abs(value) >= 1_000_000_000:
                         return f"${value / 1_000_000_000:.2f}B"
@@ -155,7 +137,6 @@ class MetricExtractor:
 
             elif metric_type == "percentage":
                 if isinstance(value, (int, float)):
-                    # If value is 0-1 scale, multiply by 100
                     if abs(value) <= 1:
                         return f"{value * 100:.2f}%"
                     else:

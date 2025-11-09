@@ -104,7 +104,10 @@ UNIVERSAL_METRICS = {
                 name="Total Revenue",
                 data_key="income_statement.Total Revenue",
                 metric_type="currency",
-                alt_keys=["income_statement.totalRevenue", "income_statement.Operating Revenue"],
+                alt_keys=[
+                    "income_statement.totalRevenue",
+                    "income_statement.Operating Revenue",
+                ],
                 description="Total company revenue",
             ),
             MetricDefinition(
@@ -165,7 +168,10 @@ UNIVERSAL_METRICS = {
                 name="Total Equity",
                 data_key="balance_sheet.Total Equity",
                 metric_type="currency",
-                alt_keys=["balance_sheet.totalEquity", "balance_sheet.Stockholders Equity"],
+                alt_keys=[
+                    "balance_sheet.totalEquity",
+                    "balance_sheet.Stockholders Equity",
+                ],
                 description="Shareholders' equity",
             ),
             MetricDefinition(
@@ -425,7 +431,10 @@ def get_template_for_sector(sector: str) -> SectorTemplate:
     # Partial match (case-insensitive)
     sector_lower = sector.lower()
     for template_sector, template in SECTOR_TEMPLATES.items():
-        if sector_lower in template_sector.lower() or template_sector.lower() in sector_lower:
+        if (
+            sector_lower in template_sector.lower()
+            or template_sector.lower() in sector_lower
+        ):
             return template
 
     return DEFAULT_TEMPLATE
