@@ -3,6 +3,7 @@
 Main script to calculate TIRs and generate yield curves for bond portfolios.
 """
 
+import os
 import csv
 import logging
 from datetime import date
@@ -17,7 +18,7 @@ from src.domain.financial_math import calculate_tir
 from src.gateway.puentenet_fetcher import PuenteNetFetcher
 
 # Minimal logging - only errors and critical info
-logging.basicConfig(level=logging.WARNING)
+logging.basicConfig(level=logging.ERROR)
 
 URL_BONDS = "https://data912.com/live/arg_bonds"
 URL_NOTES = "https://data912.com/live/arg_notes"
@@ -181,6 +182,7 @@ def plot_yield_curve(bond_data: list[dict], title: str, filename: str, today: da
 
 
     plt.tight_layout()
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
     plt.savefig(filename)
     plt.close()
 
