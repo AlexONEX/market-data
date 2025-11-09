@@ -91,7 +91,7 @@ class PuenteNetFetcher:
 
         raw_data = self._fetch_from_puentenet(ticker, nominal_value)
         if raw_data:
-            parsed_cashflows = self.parse_cashflows(raw_data)
+            parsed_cashflows = self._parse_cashflows(raw_data)
             if parsed_cashflows:
                 self._cashflow_cache[ticker] = parsed_cashflows
                 self._save_cashflows_to_csv(ticker, parsed_cashflows)
@@ -121,7 +121,7 @@ class PuenteNetFetcher:
             )
             return None
 
-    def parse_cashflows(self, raw_data: Any) -> List[Dict[str, Any]]:
+    def _parse_cashflows(self, raw_data: Any) -> List[Dict[str, Any]]:
         if not raw_data or not isinstance(raw_data, dict):
             logging.warning("Invalid or empty raw cash flow data.")
             return []

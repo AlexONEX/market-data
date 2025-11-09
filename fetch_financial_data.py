@@ -109,7 +109,7 @@ def main():
         with open(output_file, "w") as f:
             json.dump(data_to_save, f, indent=2, default=str)
 
-        print(f"✓ Saved JSON to {output_file.relative_to(Path.cwd())}")
+        print(f"JSON to {output_file.relative_to(Path.cwd())}")
 
         # Format data for sheets
         formatter = ReportFormatter(financial_data)
@@ -130,7 +130,7 @@ def main():
                 sheet_count += 1
 
         print(
-            f"✓ Generated {sheet_count} sheets in {sheets_dir.relative_to(Path.cwd())}/"
+            f"Generated {sheet_count} sheets in {sheets_dir.relative_to(Path.cwd())}/"
         )
         print(
             f"\nData sources: {', '.join(s for s in financial_data.get('sources', {}).values() if s)}"
