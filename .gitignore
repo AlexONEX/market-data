@@ -202,5 +202,5 @@ __marimo__/
 
 # .DS_Store ignore
 .DS_Store
-plots/*
+src/plots/*
 data/*

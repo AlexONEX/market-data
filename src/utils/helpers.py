@@ -8,10 +8,6 @@ logging.basicConfig(
 
 
 def parse_date(date_str: str) -> datetime | None:
-    """
-    Parses a date string into a datetime object.
-    Handles multiple common date formats.
-    """
     formats = [
         "%d/%m/%Y",
         "%Y-%m-%dT%H:%M:%S%z",
@@ -31,13 +27,7 @@ def calculate_tem_from_tea(tea: Decimal) -> Decimal | None:
     """
     Calculates the Tasa Efectiva Mensual (TEM) from the Tasa Efectiva Anual (TEA).
     Formula: TEM = (1 + TEA)^(1/12) - 1
-
-    Assumes 'tea' is already a Decimal type due to type hinting.
     """
-    # Removed the 'if not isinstance(tea, Decimal):' block.
-    # The type hint 'tea: Decimal' in the function signature indicates that 'tea'
-    # is expected to be a Decimal. Static type checkers will flag calls
-    # where 'tea' is not a Decimal.
 
     one = Decimal("1")
     twelve = Decimal("12")
@@ -70,9 +60,5 @@ def calculate_maturity_years(
     expiration_date: datetime,
     current_date: datetime,
 ) -> Decimal:
-    """
-    Calculates the years to maturity from an expiration date and current date.
-    Assumes expiration_date and current_date are valid datetime objects.
-    """
     time_to_maturity = expiration_date - current_date
     return Decimal(time_to_maturity.days) / Decimal("365.25")

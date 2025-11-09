@@ -1,7 +1,9 @@
 from enum import Enum
 
+
 class FixedIncomeAssetType(Enum):
     """Defines categories for fixed-income assets."""
+
     FIXED_RATE = "Fixed Rate Bonds"
     CER_LINKED = "CER Linked Bonds"
     DOLLAR_LINKED = "Dollar Linked Bonds"
