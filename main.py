@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import requests
 from requests.exceptions import RequestException
-from src.gateway.puentenet_fetcher import PuenteNetFetcher
+from src.gateway.puentenet_connector import PuenteNetConnector
 
 from src.domain.financial_math import calculate_tir
 
@@ -271,7 +271,7 @@ def _get_instrument_price(instrument_data: dict) -> Decimal:
 
 def main():
     """Main script to calculate Yields (TIRs) and generate yield curves for bond portfolios."""
-    puentenet_fetcher = PuenteNetFetcher()
+    puentenet_fetcher = PuenteNetConnector()
     all_data912_instruments = get_all_data912_instruments()
 
     results = []

@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-class PuenteNetFetcher:
+class PuenteNetConnector:
     BASE_URL = "https://www.puentenet.com/"
     CASHFLOW_ENDPOINT = "herramientas/flujo-de-fondos/calcular"
     CASHFLOW_CSV = Path("src/data/cashflows.csv")
