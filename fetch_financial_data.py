@@ -21,10 +21,29 @@ from src.services.financial_data_service import FinancialDataService
 from src.utils.report_formatter import ReportFormatter
 
 logging.basicConfig(
-    level=logging.WARNING,
+    level=logging.DEBUG,
     format="%(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+
+def _convert_timestamps_to_strings(obj):
+    """
+    Recursively converts pandas Timestamp objects to ISO 8601 strings
+    within dictionaries and lists, including dictionary keys.
+    """
+    if isinstance(obj, pd.Timestamp):
+        return obj.isoformat()
+    if isinstance(obj, dict):
+        return {
+            k.isoformat()
+            if isinstance(k, pd.Timestamp)
+            else k: _convert_timestamps_to_strings(v)
+            for k, v in obj.items()
+        }
+    if isinstance(obj, list):
+        return [_convert_timestamps_to_strings(elem) for elem in obj]
+    return obj
 
 
 def main():
@@ -96,6 +115,9 @@ def main():
         peers = financial_data.get("peers")
         if peers:
             data_to_save["peers"] = peers
+
+        # Convert any Timestamps to strings for JSON serialization
+        data_to_save = _convert_timestamps_to_strings(data_to_save)
 
         # Save to JSON
         output_dir = Path(args.output_dir)

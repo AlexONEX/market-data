@@ -172,7 +172,6 @@ def _plot_single_curve(points, label, color, is_lecap):
             ha="left",
         )
 
-    # Smooth curve
     if len(times) > MIN_POINTS_FOR_SMOOTHING:
         times_for_fit, rates_for_fit = _get_fitting_data(points, times, rates, is_lecap)
         _plot_smooth_curve(

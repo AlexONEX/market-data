@@ -62,25 +62,36 @@ UNIVERSAL_METRICS = {
         name="Valuation",
         metrics=[
             MetricDefinition(
-                name="P/E Ratio",
+                name="PE Ratio",
                 data_key="ratios.pe_ratio",
                 metric_type="ratio",
                 alt_keys=["overview.peRatio"],
+                description="Price-to-Earnings ratio (as on stockanalysis.com)",
             ),
             MetricDefinition(
-                name="P/S Ratio", data_key="ratios.ps_ratio", metric_type="ratio"
+                name="PS Ratio",
+                data_key="ratios.ps_ratio",
+                metric_type="ratio",
+                description="Price-to-Sales ratio (as on stockanalysis.com)",
             ),
             MetricDefinition(
-                name="P/B Ratio",
+                name="PB Ratio",
                 data_key="ratios.pb_ratio",
                 metric_type="ratio",
                 alt_keys=["overview.priceToBook"],
+                description="Price-to-Book ratio (as on stockanalysis.com)",
             ),
             MetricDefinition(
-                name="P/TBV Ratio", data_key="ratios.p_tbv_ratio", metric_type="ratio"
+                name="P/TBV Ratio",
+                data_key="ratios.p_tbv_ratio",
+                metric_type="ratio",
+                description="Price-to-Tangible Book Value ratio",
             ),
             MetricDefinition(
-                name="P/FCF Ratio", data_key="ratios.p_fcf_ratio", metric_type="ratio"
+                name="P/FCF Ratio",
+                data_key="ratios.p_fcf_ratio",
+                metric_type="ratio",
+                description="Price-to-Free Cash Flow ratio",
             ),
             MetricDefinition(
                 name="Dividend Yield",
@@ -108,9 +119,10 @@ UNIVERSAL_METRICS = {
                 metric_type="percentage",
             ),
             MetricDefinition(
-                name="FCF Margin",
+                name="Free Cash Flow Margin",
                 data_key="income_statement.free_cash_flow_margin",
                 metric_type="percentage",
+                description="FCF Margin (as on stockanalysis.com)",
             ),
             MetricDefinition(
                 name="EBITDA Margin",
@@ -156,10 +168,17 @@ UNIVERSAL_METRICS = {
                 metric_type="currency",
             ),
             MetricDefinition(
+                name="EPS (Basic)",
+                data_key="income_statement.eps_basic",
+                metric_type="currency",
+                description="Earnings Per Share (Basic)",
+            ),
+            MetricDefinition(
                 name="EPS (Diluted)",
                 data_key="income_statement.eps_diluted",
                 metric_type="currency",
                 alt_keys=["overview.eps"],
+                description="Earnings Per Share (Diluted)",
             ),
         ],
     ),

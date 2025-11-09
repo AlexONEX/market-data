@@ -6,24 +6,26 @@ def clean_column_name(col_name: str) -> str:
     Cleans a column name to be a valid Python identifier.
 
     - Converts to lowercase
-    - Removes parentheses and percentage signs
+    - Handles parentheses content (converts to underscore + content)
     - Replaces spaces, slashes, and hyphens with underscores
     - Removes any non-alphanumeric characters except underscore
     - Removes any trailing or leading underscores
 
-    Example:
+    Examples:
         "Revenue Growth (YoY)" -> "revenue_growth_yoy"
         "Debt / Equity Ratio" -> "debt_equity_ratio"
+        "EPS (Basic)" -> "eps_basic"
+        "EPS (Diluted)" -> "eps_diluted"
 
     """
     if not isinstance(col_name, str):
         return ""
 
-    # Convert to lowercase
     cleaned = col_name.lower()
 
-    # Remove content in parentheses and the parentheses themselves
-    cleaned = re.sub(r"\(.*?\)", "", cleaned)
+    # Replace content in parentheses with underscore + content (instead of removing)
+    # This ensures EPS (Basic) -> eps_basic and EPS (Diluted) -> eps_diluted
+    cleaned = re.sub(r"\s*\((.*?)\)", r"_\1", cleaned)
 
     # Replace special characters with underscores
     cleaned = re.sub(r"[\s/&-]+", "_", cleaned)

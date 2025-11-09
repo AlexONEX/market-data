@@ -1,3 +1,4 @@
+import io
 import logging
 import re
 from typing import Any, ClassVar  # Added ClassVar for RUF012
@@ -50,7 +51,11 @@ class StockanalysisConnector:
         Fetches a financial table from a URL, cleans its index, and returns the DataFrame.
         """
         try:
-            tables = pd.read_html(url, storage_options=self.HEADERS)
+            response = requests.get(url, headers=self.HEADERS, timeout=10)
+            response.raise_for_status()
+            tables = pd.read_html(
+                io.StringIO(response.text), storage_options=self.HEADERS
+            )
             if not tables:
                 return None
 
@@ -102,16 +107,26 @@ class StockanalysisConnector:
                 "eps": r'eps:"(.*?)"',
                 "dividendYield": r'dividend:"(.*?)"',
                 "priceToBook": r'pbRatio:"(.*?)"',
-                "sector": r'\{t:"Sector",v:"(.*?)"\}',
-                "industry": r'\{t:"Industry",v:"(.*?)"\}',
-                "fullTimeEmployees": r'\{t:"Employees",v:"(.*?)"\}',
-                "name": r'name:"(.*?)"',
+                "sector": r'\{t:"Sector",v:"(.*?)",u:',
+                "industry": r'\{t:"Industry",v:"(.*?)",u:',
+                "fullTimeEmployees": r'\{t:"Employees",v:"(.*?)"',
             }
             for key, pattern in patterns.items():
                 match = re.search(pattern, script_content)
                 if match:
                     value = match.group(1)
                     overview_data[key] = self._parse_number(value)
+
+            # Extract company name from h1 tag instead (more reliable)
+            h1 = soup.find("h1")
+            if h1:
+                h1_text = h1.get_text().strip()
+                # Parse "Company Name (TICKER)" format
+                if "(" in h1_text:
+                    company_name = h1_text.split("(")[0].strip()
+                    overview_data["name"] = company_name
+                else:
+                    overview_data["name"] = h1_text
         except (AttributeError, ValueError, IndexError) as e:
             logger.debug("Error extracting overview data with regex: %s", e)  # G004
         return overview_data
@@ -141,12 +156,29 @@ class StockanalysisConnector:
         return self._get_cleaned_financial_table(url)
 
     def get_dividends(self) -> pd.DataFrame | None:
-        url = f"{self.base_url}/dividends/"
+        url = f"{self.base_url}/"  # Fetch from the main page
         try:
-            tables = pd.read_html(url, storage_options=self.HEADERS)
-            return tables[0] if tables else None
+            response = requests.get(url, headers=self.HEADERS, timeout=10)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.content, "html.parser")
+
+            # Try to find tables within the main page content
+            tables = pd.read_html(io.StringIO(str(soup)), storage_options=self.HEADERS)
+
+            # Heuristic: Look for a table that might contain dividend information
+            # This might need refinement based on actual page structure
+            found_table = False
+            for table in tables:
+                if not table.empty and any(
+                    isinstance(col, str) and "Dividend" in col for col in table.columns
+                ):
+                    found_table = True
+                    return table
+            if not found_table:
+                logger.debug("No dividend table found on %s", url)
+                return None
         except RequestException as e:
-            logger.debug("Failed to get dividends from %s: %s", url, e)  # G004
+            logger.debug("Failed to get dividends from %s: %s", url, e)
             return None
         except (ValueError, AttributeError, KeyError, IndexError) as e:
             logger.debug(
