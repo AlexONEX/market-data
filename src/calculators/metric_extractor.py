@@ -21,11 +21,11 @@ class MetricExtractor:
         self.data = data
         self.sector = sector or data.get("overview", {}).get("sector", "")
         self.template = get_template_for_sector(self.sector)
-        logger.info("Using template: %s", self.template.name) # G004
+        logger.info("Using template: %s", self.template.name)
 
     def extract_category(self, category_name: str) -> dict[str, Any]:
-        if category_name not in self.template.categories: # SIM118
-            logger.warning("Category '%s' not found in template", category_name) # G004
+        if category_name not in self.template.categories:
+            logger.warning("Category '%s' not found in template", category_name)
             return {}
 
         category = self.template.categories[category_name]
@@ -45,7 +45,7 @@ class MetricExtractor:
     def extract_all_categories(self) -> dict[str, dict[str, Any]]:
         results = {}
 
-        for category_name in self.template.categories: # SIM118
+        for category_name in self.template.categories:
             results[category_name] = self.extract_category(category_name)
 
         return results
@@ -61,7 +61,7 @@ class MetricExtractor:
                 return value
 
         logger.debug(
-            "Metric '%s' not found with keys: %s, %s", metric_def.name, metric_def.data_key, metric_def.alt_keys # G004
+            "Metric '%s' not found with keys: %s, %s", metric_def.name, metric_def.data_key, metric_def.alt_keys
         )
         return None
 
@@ -72,7 +72,7 @@ class MetricExtractor:
         - For "income_statement.revenue", finds the 'revenue' row and gets the first value.
         """
         parts = key_path.split(".")
-        if len(parts) != NESTED_KEY_PARTS: # PLR2004
+        if len(parts) != NESTED_KEY_PARTS:
             return None
 
         section_name, metric_key = parts
@@ -95,44 +95,6 @@ class MetricExtractor:
             return None
 
         return None
-
-    # Removed _format_value as it's now handled by ReportFormatter
-    # def _format_value(self, value: Any, metric_type: str) -> str:
-    #     if value is None or (isinstance(value, float) and pd.isna(value)):
-    #         return "N/A"
-
-    #     try:
-    #         if metric_type == "currency":
-    #             if isinstance(value, (int, float)):
-    #                 if abs(value) >= BILLION: # PLR2004
-    #                     return f"${value / BILLION:.2f}B"
-    #                 if abs(value) >= MILLION: # PLR2004
-    #                     return f"${value / MILLION:.2f}M"
-    #                 return f"${value:,.0f}"
-
-    #         elif metric_type == "percentage":
-    #             if isinstance(value, (int, float)):
-    #                 if abs(value) <= 1:
-    #                     return f"{value * 100:.2f}%"
-    #                 return f"{value:.2f}%"
-
-    #         elif metric_type == "ratio":
-    #             if isinstance(value, (int, float)):
-    #                 return f"{value:.4f}"
-
-    #         elif metric_type == "count":
-    #             if isinstance(value, (int, float)):
-    #                 return f"{int(value):,}"
-
-    #         elif metric_type == "shares":
-    #             if isinstance(value, (int, float)): # SIM102
-    #                 return f"{int(value):,} shares"
-
-    #         return str(value)
-
-    #     except Exception as e: # BLE001
-    #         logger.warning("Failed to format value %s as %s: %s", value, metric_type, e) # G004
-    #         return str(value)
 
     def get_metric_table(self, category_name: str) -> pd.DataFrame:
         metrics = self.extract_category(category_name)

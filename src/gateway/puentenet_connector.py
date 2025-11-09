@@ -15,7 +15,7 @@ logger.setLevel(logging.INFO)
 class PuenteNetFetcher:
     BASE_URL = "https://www.puentenet.com/"
     CASHFLOW_ENDPOINT = "herramientas/flujo-de-fondos/calcular"
-    CASHFLOW_CSV = Path("src/data/cashflows.csv") # PTH103, PTH118
+    CASHFLOW_CSV = Path("src/data/cashflows.csv")
 
     def __init__(self):
         self._cashflow_cache: dict[str, list[dict[str, Any]]] = {}
@@ -23,14 +23,14 @@ class PuenteNetFetcher:
 
     def _load_cashflows_from_csv(self):
         """Loads cash flows from the CSV file into the internal cache."""
-        if not self.CASHFLOW_CSV.exists(): # PTH110
+        if not self.CASHFLOW_CSV.exists():
             return
 
-        with self.CASHFLOW_CSV.open(newline="") as file: # PTH123
+        with self.CASHFLOW_CSV.open(newline="") as file:
             reader = csv.DictReader(file)
             for row in reader:
                 ticker = row["Ticker"]
-                payment_date = datetime.strptime(row["PaymentDate"], "%Y-%m-%d").replace(tzinfo=UTC).date() # DTZ007
+                payment_date = datetime.strptime(row["PaymentDate"], "%Y-%m-%d").replace(tzinfo=UTC).date()
                 total_payment = Decimal(row["TotalPayment"])
                 amortization = Decimal(row["Amortization"])
                 interest = Decimal(row["Interest"])
@@ -46,14 +46,14 @@ class PuenteNetFetcher:
                     }
                 )
         logger.info(
-            "Loaded %d tickers with cash flows from %s", len(self._cashflow_cache), self.CASHFLOW_CSV # G004
+            "Loaded %d tickers with cash flows from %s", len(self._cashflow_cache), self.CASHFLOW_CSV
         )
 
     def _save_cashflows_to_csv(self, ticker: str, cashflows: list[dict[str, Any]]):
-        file_exists = self.CASHFLOW_CSV.exists() # PTH110
-        is_empty = not file_exists or self.CASHFLOW_CSV.stat().st_size == 0 # PTH116
+        file_exists = self.CASHFLOW_CSV.exists()
+        is_empty = not file_exists or self.CASHFLOW_CSV.stat().st_size == 0
 
-        with self.CASHFLOW_CSV.open(mode="a", newline="") as file: # PTH123
+        with self.CASHFLOW_CSV.open(mode="a", newline="") as file:
             writer = csv.writer(file)
             if is_empty:
                 writer.writerow(
@@ -117,7 +117,7 @@ class PuenteNetFetcher:
             return None
         except ValueError:
             logger.exception(
-                "Error decoding PuenteNet JSON for %s. Response: %s", ticker, response.text if response else "No response"
+                "Error decoding PuenteNet JSON for %s. Response: %s", ticker, response.text if response else "No response" # Q000
             )
             return None
 

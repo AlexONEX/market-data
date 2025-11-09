@@ -16,8 +16,8 @@ class Settings:
 settings = Settings()
 
 if __name__ == "__main__":
-    logger.info("PPI Public Key: %s", settings.PPI_PUBLIC_KEY) # T201
-    logger.info( # T201
+    logger.info("PPI Public Key: %s", settings.PPI_PUBLIC_KEY)
+    logger.info(
         "PPI Private Key: %s",
         "*" * len(settings.PPI_PRIVATE_KEY) if settings.PPI_PRIVATE_KEY else "Not set",
     )

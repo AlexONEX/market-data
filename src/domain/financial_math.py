@@ -15,7 +15,7 @@ def calculate_tir(
     TIR using Newton-Raphson (XIRR).
     """
     if not cashflows or price <= 0:
-        logger.debug("calculate_tir: Cashflows vacíos o precio <= 0. Price: %s", price) # G004
+        logger.debug("calculate_tir: Cashflows vacíos o precio <= 0. Price: %s", price)
         return None
 
     future_cashflows = []
@@ -77,7 +77,7 @@ def calculate_tir(
         d_npv_val = d_npv(guess)
 
         logger.debug(
-            "Iter %d: Guess=%.6f, NPV=%.6f, dNPV=%.6f", i, guess, npv_val, d_npv_val # G004
+            "Iter %d: Guess=%.6f, NPV=%.6f, dNPV=%.6f", i, guess, npv_val, d_npv_val
         )
 
         if npv_val.is_nan() or d_npv_val.is_nan():
@@ -86,7 +86,7 @@ def calculate_tir(
 
         if abs(npv_val) < Decimal("1e-9"):
             logger.debug(
-                "calculate_tir: Convergencia alcanzada en %d iteraciones. TIR=%.6f", i, guess # G004
+                "calculate_tir: Convergencia alcanzada en %d iteraciones. TIR=%.6f", i, guess
             )
             return guess
 
@@ -108,12 +108,12 @@ def convert_tirea_to_tem(tirea_anual: Decimal) -> Decimal:
         return Decimal(-1)
 
     exponent_monthly = Decimal(1) / Decimal(12)
-    return (Decimal(1) + tirea_anual) ** exponent_monthly - Decimal(1) # RET504
+    return (Decimal(1) + tirea_anual) ** exponent_monthly - Decimal(1)
 
 
 def convert_tem_to_tea(tem: Decimal) -> Decimal:
-    return (Decimal(1) + tem) ** Decimal(12) - Decimal(1) # RET504
+    return (Decimal(1) + tem) ** Decimal(12) - Decimal(1)
 
 
 def convert_tem_to_tna(tem: Decimal) -> Decimal:
-    return tem * Decimal(12) # RET504
+    return tem * Decimal(12)
