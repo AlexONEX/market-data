@@ -109,7 +109,7 @@ def main():
         with open(output_file, "w") as f:
             json.dump(data_to_save, f, indent=2, default=str)
 
-        print(f"JSON to {output_file.relative_to(Path.cwd())}")
+        print(f"JSON to {output_file.resolve().relative_to(Path.cwd())}")
 
         # Format data for sheets
         formatter = ReportFormatter(financial_data)
