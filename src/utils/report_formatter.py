@@ -27,7 +27,7 @@ class ReportFormatter:
             ["Name", overview.get("name", "N/A")],
             ["Sector", overview.get("sector", "N/A")],
             ["Industry", overview.get("industry", "N/A")],
-            ["Employees", self._format_number(overview.get('fullTimeEmployees'))],
+            ["Employees", self._format_number(overview.get("fullTimeEmployees"))],
             ["Website", overview.get("website", "N/A")],
             [],
             ["Key Metrics"],

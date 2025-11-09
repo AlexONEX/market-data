@@ -132,7 +132,9 @@ def main():
         print(
             f"Generated {sheet_count} sheets in {sheets_dir.resolve().relative_to(Path.cwd())}/"
         )
-        sources_list = ', '.join(s for s in financial_data.get('sources', {}).values() if s)
+        sources_list = ", ".join(
+            s for s in financial_data.get("sources", {}).values() if s
+        )
         print(f"\nData sources: {sources_list}")
 
         return 0
@@ -144,6 +146,7 @@ def main():
     except Exception as e:
         print(f"✗ Error: {e}")
         import traceback
+
         traceback.print_exc()
         logger.debug(e, exc_info=True)
         return 1
