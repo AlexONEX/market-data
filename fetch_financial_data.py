@@ -21,7 +21,7 @@ from src.services.financial_data_service import FinancialDataService
 from src.utils.report_formatter import ReportFormatter
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.WARNING,
     format="%(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)

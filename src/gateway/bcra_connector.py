@@ -14,10 +14,11 @@ class BCRAAPIConnector:
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            cls._instance._initialize()
+            instance = cls._instance
+            instance.initialize()
         return cls._instance
 
-    def _initialize(self):
+    def initialize(self):
         """Inicializa el conector. En este caso, no hay autenticación compleja."""
         logger.info("Inicializando BCRAAPIConnector.")
         # No se requiere autenticación ni manejo de tokens para esta API pública.
@@ -29,11 +30,11 @@ class BCRAAPIConnector:
             response.raise_for_status()
             data = response.json()
             return data.get("results", [])
-        except (RequestException, HTTPError) as e:
-            logger.exception("Error when connecting to BCRA API: %s", e)
+        except (RequestException, HTTPError):
+            logger.exception("Error when connecting to BCRA API")
             return None
-        except ValueError as e:
+        except ValueError:
             logger.exception(
-                "Error when parsing api response for ID %s: %s", variable_id, e
+                "Error when parsing api response for ID %s", variable_id
             )
             return None

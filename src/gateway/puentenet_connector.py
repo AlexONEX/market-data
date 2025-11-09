@@ -119,9 +119,9 @@ class PuenteNetFetcher:
             response.raise_for_status()
             logger.info("Cash flow data for %s obtained from PuenteNet.", ticker)
             return response.json()
-        except RequestException as e:
+        except RequestException:
             logger.exception(
-                "Error fetching cash flows for %s from PuenteNet: %s", ticker, e
+                "Error fetching cash flows for %s from PuenteNet", ticker
             )
             return None
         except ValueError:

@@ -1,7 +1,7 @@
 import logging
 
 from src.gateway.bcra_connector import BCRAAPIConnector
-from src.utils.plotter import plot_time_series
+from src.utils.plotter import PlotConfig, plot_time_series
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -209,7 +209,7 @@ class BCRAService:
         }
 
     def get_principal_variable_data(self, variable_id: int) -> dict | None:
-        data = self.connector._get_series_data(variable_id)  # SLF001
+        data = self.connector.get_series_data(variable_id)
         if data:
             return data[0]
         logger.warning(
@@ -218,7 +218,7 @@ class BCRAService:
         return None
 
     def get_time_series_data(self, variable_id: int) -> list | None:
-        return self.connector._get_series_data(variable_id)  # SLF001
+        return self.connector.get_series_data(variable_id)
 
     def plot_bcra_series(self, variable_id: int, output_dir: str = "plots"):
         description = self.variable_descriptions.get(
@@ -253,14 +253,17 @@ class BCRAService:
             c for c in safe_filename if c.isalnum() or c in ["_", "."]
         ).replace("__", "_")
 
-        plot_time_series(
-            data_results,
-            date_col="fecha",
-            value_col="valor",
+        config = PlotConfig(
             plot_title=description,
             output_filename=safe_filename,
             y_label=y_label,
             output_dir=output_dir,
+        )
+        plot_time_series(
+            data_results,
+            date_col="fecha",
+            value_col="valor",
+            config=config,
         )
 
 

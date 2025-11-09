@@ -4,7 +4,6 @@ from typing import Any
 import pandas as pd
 
 from src.calculators.metric_extractor import MetricExtractor
-from src.domain.metric_templates import MetricType  # Import MetricType
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +46,7 @@ class ReportFormatter:
         ]
         return pd.DataFrame(rows, columns=["Metric", "Value"])
 
-    def _format_metric_value(self, value: Any, metric_type: MetricType) -> str:
+    def _format_metric_value(self, value: Any, metric_type: str) -> str:
         """
         Formats a single metric value based on its type.
         This logic is moved from MetricExtractor._format_value.
@@ -55,11 +54,11 @@ class ReportFormatter:
         if value is None:
             return "N/A"
 
-        if metric_type == MetricType.CURRENCY:
+        if metric_type == "currency":
             return self.format_currency(value)
-        if metric_type == MetricType.PERCENTAGE:
+        if metric_type == "percentage":
             return self.format_percentage(value)
-        if metric_type == MetricType.NUMBER:
+        if metric_type == "number":
             return self.format_number(value)
         return str(value)
 
@@ -79,8 +78,8 @@ class ReportFormatter:
                     value, metric_type
                 )  # SLF001 fixed: call ReportFormatter's own method
                 rows.append(
-                    [metric_name, formatted, metric_type.value]
-                )  # .value to get string representation
+                    [metric_name, formatted, metric_type]
+                )  # metric_type is already a string
             rows.append([])
         if rows:
             return pd.DataFrame(rows, columns=["Metric", "Value", "Type"])
@@ -105,18 +104,20 @@ class ReportFormatter:
             return "N/A"
         try:
             value = float(value)
-            return f"${value:,.2f}"  # UP031 - converted f-string
         except (ValueError, TypeError):
             return str(value)
+        else:
+            return f"${value:,.2f}"  # UP031 - converted f-string
 
     def format_percentage(self, value: Any) -> str:
         if value is None or (isinstance(value, float) and pd.isna(value)):
             return "N/A"
         try:
             value = float(value)
-            return f"{value:.2%}"  # UP031 - converted f-string
         except (ValueError, TypeError):
             return str(value)
+        else:
+            return f"{value:.2%}"  # UP031 - converted f-string
 
     def format_number(self, value: Any) -> str:
         if value is None or (isinstance(value, float) and pd.isna(value)):
@@ -125,6 +126,7 @@ class ReportFormatter:
             value = float(value)
             if value == int(value):
                 return f"{int(value):,}"  # UP031 - converted f-string
-            return f"{value:,.2f}"  # UP031 - converted f-string
         except (ValueError, TypeError):
             return str(value)
+        else:
+            return f"{value:,.2f}"  # UP031 - converted f-string

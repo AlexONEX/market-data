@@ -95,61 +95,56 @@ class FinancialDataService:
         try:
             connector = StockanalysisConnector(ticker)
             return connector.get_all_data(period=period)
-        except Exception as e:  # BLE001
+        except (ValueError, TypeError, AttributeError, KeyError) as e:
             logger.debug("Failed to fetch from stockanalysis.com: %s", e)
             return {}
+
+    def _get_yfinance_overview(self, stock) -> dict:
+        """Get overview data from yfinance."""
+        try:
+            if hasattr(stock, "info"):
+                return stock.info if isinstance(stock.info, dict) else {}
+        except (AttributeError, TypeError, KeyError) as e:
+            logger.debug("Failed to get overview from yfinance: %s", e)
+        return {}
+
+    def _get_yfinance_statement(self, stock, period: str, stmt_type: str):
+        """Get financial statement from yfinance based on period and type."""
+        try:
+            attr_map = {
+                ("annual", "income"): "income_stmt",
+                ("quarterly", "income"): "quarterly_income_stmt",
+                ("annual", "balance"): "balance_sheet",
+                ("quarterly", "balance"): "quarterly_balance_sheet",
+                ("annual", "cashflow"): "cashflow",
+                ("quarterly", "cashflow"): "quarterly_cashflow",
+            }
+            attr_name = attr_map.get((period, stmt_type))
+            if attr_name and hasattr(stock, attr_name):
+                return getattr(stock, attr_name)
+        except (AttributeError, TypeError, KeyError) as e:
+            logger.debug("Failed to get %s statement from yfinance: %s", stmt_type, e)
+        return None
 
     def _get_from_yfinance(self, ticker: str, period: str) -> dict[str, Any]:
         try:
             stock = yf.Ticker(ticker)
-            overview = {}
+            overview = self._get_yfinance_overview(stock)
+            income_stmt = self._get_yfinance_statement(stock, period, "income")
+            balance_sheet = self._get_yfinance_statement(stock, period, "balance")
+            cash_flow = self._get_yfinance_statement(stock, period, "cashflow")
 
-            try:
-                if hasattr(stock, "info"):
-                    overview = stock.info if isinstance(stock.info, dict) else {}
-            except Exception as e:  # BLE001, S110
-                logger.debug("Failed to get overview from yfinance: %s", e)
-
-            income_stmt = None
-            try:
-                if period == "annual" and hasattr(stock, "income_stmt"):
-                    income_stmt = stock.income_stmt
-                elif period == "quarterly" and hasattr(stock, "quarterly_income_stmt"):
-                    income_stmt = stock.quarterly_income_stmt
-            except Exception as e:  # BLE001, S110
-                logger.debug("Failed to get income statement from yfinance: %s", e)
-
-            balance_sheet = None
-            try:
-                if period == "annual" and hasattr(stock, "balance_sheet"):
-                    balance_sheet = stock.balance_sheet
-                elif period == "quarterly" and hasattr(
-                    stock, "quarterly_balance_sheet"
-                ):
-                    balance_sheet = stock.quarterly_balance_sheet
-            except Exception as e:  # BLE001, S110
-                logger.debug("Failed to get balance sheet from yfinance: %s", e)
-
-            cash_flow = None
-            try:
-                if period == "annual" and hasattr(stock, "cashflow"):
-                    cash_flow = stock.cashflow
-                elif period == "quarterly" and hasattr(stock, "quarterly_cashflow"):
-                    cash_flow = stock.quarterly_cashflow
-            except Exception as e:  # BLE001, S110
-                logger.debug("Failed to get cash flow from yfinance: %s", e)
-
-            return {  # RET504, TRY300
+        except (ValueError, TypeError, AttributeError, KeyError) as e:
+            logger.debug("Failed to fetch from yfinance: %s", e)
+            return {}
+        else:
+            return {
                 "overview": overview,
                 "income_statement": income_stmt,
                 "balance_sheet": balance_sheet,
                 "cash_flow": cash_flow,
                 "ratios": None,
             }
-
-        except Exception as e:  # BLE001
-            logger.debug("Failed to fetch from yfinance: %s", e)
-            return {}
 
     def _get_peers_from_fmp(self, ticker: str) -> list[str] | None:
         if not self.fmp_api_key:
@@ -165,15 +160,16 @@ class FinancialDataService:
             peers_data = response.json()
             if isinstance(peers_data, dict) and "peersList" in peers_data:
                 return peers_data["peersList"]
-            # TRY300
-            return None
 
-        except (RequestException, HTTPError) as e:  # BLE001
+        except (RequestException, HTTPError) as e:
             logger.debug("Failed to fetch peers from FMP: %s", e)
             return None
         except ValueError as e:  # For JSON decoding errors
             logger.debug("Failed to decode FMP peers JSON: %s", e)
             return None
-        except Exception as e:  # Catch any other unexpected exceptions
+        except (TypeError, KeyError, AttributeError) as e:
             logger.debug("An unexpected error occurred while fetching FMP peers: %s", e)
+            return None
+        else:
+            # TRY300
             return None

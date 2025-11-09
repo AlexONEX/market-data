@@ -90,12 +90,8 @@ def get_all_data912_instruments() -> dict[str, dict]:
     return instruments_by_ticker
 
 
-def _plot_single_curve(points, label, color, is_lecap):
-    """Plots a single yield curve with optional smoothing and special handling for LECAP/BONCAP bonds."""
-    if not points:
-        return
-
-    points.sort(key=lambda x: x["time_to_maturity"])
+def _prepare_curve_data(points, is_lecap):
+    """Prepare time and rate data for curve plotting."""
     times = np.array([p["time_to_maturity"] for p in points])
 
     if is_lecap:
@@ -111,6 +107,60 @@ def _plot_single_curve(points, label, color, is_lecap):
         rates = np.array([float(p["tir"] * 100) for p in points])
         labels = [f"{p['ticker']} ({p['tir'] * 100:.2f}%)" for p in points]
 
+    return times, rates, labels
+
+
+def _get_fitting_data(points, times, rates, is_lecap):
+    """Get data for curve fitting, excluding outliers if needed."""
+    if not is_lecap:
+        return times, rates
+
+    # Find and exclude S16E6 if present
+    s16e6_index = next((i for i, p in enumerate(points) if p["ticker"] == "S16E6"), -1)
+
+    if s16e6_index != -1:
+        return np.delete(times, s16e6_index), np.delete(rates, s16e6_index)
+    return times, rates
+
+
+def _plot_smooth_curve(curve_data: tuple, fit_data: tuple, *, label, color, is_lecap):
+    """
+    Plot a smooth curve with polynomial fitting.
+
+    Args:
+        curve_data: Tuple of (times, rates) for the original curve
+        fit_data: Tuple of (times_for_fit, rates_for_fit) for polynomial fitting
+        label: Label for the curve
+        color: Color for the curve
+        is_lecap: Whether this is a LECAP/BONCAP curve
+
+    """
+    times, rates = curve_data
+    times_for_fit, rates_for_fit = fit_data
+
+    if len(times_for_fit) <= MIN_POINTS_FOR_SMOOTHING:
+        plt.plot(times, rates, linestyle="--", color=color, alpha=0.7)
+        return
+
+    try:
+        deg = 2 if is_lecap else min(3, len(times_for_fit) - 1)
+        p = np.polyfit(times_for_fit, rates_for_fit, deg)
+        f = np.poly1d(p)
+        t_smooth = np.linspace(times.min(), times.max(), 300)
+        rate_smooth = f(t_smooth)
+        plt.plot(t_smooth, rate_smooth, label=f"{label} Curve", color=color)
+    except np.linalg.LinAlgError:
+        plt.plot(times, rates, linestyle="--", color=color, alpha=0.7)
+
+
+def _plot_single_curve(points, label, color, is_lecap):
+    """Plots a single yield curve with optional smoothing and special handling for LECAP/BONCAP bonds."""
+    if not points:
+        return
+
+    points.sort(key=lambda x: x["time_to_maturity"])
+    times, rates, labels = _prepare_curve_data(points, is_lecap)
+
     plt.scatter(times, rates, label=f"{label} Points", color=color)
 
     for i, txt in enumerate(labels):
@@ -124,43 +174,8 @@ def _plot_single_curve(points, label, color, is_lecap):
 
     # Smooth curve
     if len(times) > MIN_POINTS_FOR_SMOOTHING:
-        try:
-            # Exclude S16E6 from smoothing if it's an outlier in LECAP/BONCAP
-            if is_lecap:
-                # Find the index of S16E6
-                s16e6_index = -1
-                for i, p in enumerate(points):
-                    if p["ticker"] == "S16E6":
-                        s16e6_index = i
-                        break
-
-                if s16e6_index != -1:
-                    # Create new arrays excluding S16E6
-                    times_for_fit = np.delete(times, s16e6_index)
-                    rates_for_fit = np.delete(rates, s16e6_index)
-                else:
-                    times_for_fit = times
-                    rates_for_fit = rates
-            else:
-                times_for_fit = times
-                rates_for_fit = rates
-
-            if (
-                len(times_for_fit) > MIN_POINTS_FOR_SMOOTHING
-            ):  # Ensure enough points for fitting after exclusion
-                deg = 2 if is_lecap else min(3, len(times_for_fit) - 1)
-                p = np.polyfit(times_for_fit, rates_for_fit, deg)
-                f = np.poly1d(p)
-                t_smooth = np.linspace(times.min(), times.max(), 300)
-                rate_smooth = f(t_smooth)
-                plt.plot(t_smooth, rate_smooth, label=f"{label} Curve", color=color)
-            else:
-                # Fallback to simple line if not enough points for fitting
-                plt.plot(times, rates, linestyle="--", color=color, alpha=0.7)
-
-        except np.linalg.LinAlgError:
-            # Fallback to simple line if fitting fails
-            plt.plot(times, rates, linestyle="--", color=color, alpha=0.7)
+        times_for_fit, rates_for_fit = _get_fitting_data(points, times, rates, is_lecap)
+        _plot_smooth_curve((times, rates), (times_for_fit, rates_for_fit), label=label, color=color, is_lecap=is_lecap)
 
 
 def plot_yield_curve(bond_data: list[dict], title: str, filename: str, today: date):
@@ -176,7 +191,7 @@ def plot_yield_curve(bond_data: list[dict], title: str, filename: str, today: da
     if is_lecap:
         plt.xscale("log")
     plt.ylabel("TEM (%)" if is_lecap else "TIR (%)")
-    plt.grid(True)
+    plt.grid(visible=True)
 
     if "Hard Dollar" in title:
         global_bonds = []

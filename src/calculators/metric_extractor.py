@@ -17,7 +17,7 @@ NESTED_KEY_PARTS = 2
 
 
 class MetricExtractor:
-    def __init__(self, data: dict[str, Any], sector: str = None):
+    def __init__(self, data: dict[str, Any], sector: str | None = None):
         self.data = data
         self.sector = sector or data.get("overview", {}).get("sector", "")
         self.template = get_template_for_sector(self.sector)
@@ -109,8 +109,6 @@ class MetricExtractor:
         for metric_name, metric_data in metrics.items():
             value = metric_data["value"]
             metric_type = metric_data["type"]
-            # The formatting is now handled by ReportFormatter, so we just pass the raw value
-            # formatted = self._format_value(value, metric_type)
 
             rows.append(
                 {

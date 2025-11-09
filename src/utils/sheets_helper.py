@@ -15,12 +15,12 @@ class SheetsWriter:
         try:
             self.gc = gspread.service_account(filename=credentials_path)
             logger.info("Connected to Google Sheets API")
-        except gspread.exceptions.ServiceAccountError as e:
-            logger.exception("Failed to connect to Google Sheets: %s", e)
+        except gspread.exceptions.ServiceAccountError:
+            logger.exception("Failed to connect to Google Sheets")
             self.gc = None
-        except Exception as e:
+        except Exception:
             logger.exception(
-                "An unexpected error occurred during Google Sheets connection: %s", e
+                "An unexpected error occurred during Google Sheets connection"
             )
             self.gc = None
 
@@ -37,17 +37,18 @@ class SheetsWriter:
                 return self.gc.open_by_key(spreadsheet_id)
             logger.info("Creating new spreadsheet: %s", spreadsheet_name)
             return self.gc.create(spreadsheet_name)
-        except gspread.exceptions.SpreadsheetNotFound as e:
-            logger.exception("Spreadsheet not found: %s", e)
+        except gspread.exceptions.SpreadsheetNotFound:
+            logger.exception("Spreadsheet not found")
             return None
-        except Exception as e:
-            logger.exception("Failed to get/create spreadsheet: %s", e)
+        except Exception:
+            logger.exception("Failed to get/create spreadsheet")
             return None
 
     def _get_or_create_worksheet(
         self,
         spreadsheet: Any,
         sheet_name: str,
+        *,
         overwrite: bool = False,
         default_rows: int = 1000,
         default_cols: int = 26,
@@ -57,12 +58,13 @@ class SheetsWriter:
             if overwrite:
                 worksheet.clear()
                 logger.info("Cleared worksheet: %s", sheet_name)
-            return worksheet
         except gspread.exceptions.WorksheetNotFound:
             worksheet = spreadsheet.add_worksheet(
                 title=sheet_name, rows=default_rows, cols=default_cols
             )
             logger.info("Created worksheet: %s", sheet_name)
+            return worksheet
+        else:
             return worksheet
 
     def write_dataframe(
@@ -70,6 +72,7 @@ class SheetsWriter:
         spreadsheet: Any,
         sheet_name: str,
         df: pd.DataFrame,
+        *,
         overwrite: bool = True,
     ) -> bool:
         if not spreadsheet:
@@ -97,17 +100,19 @@ class SheetsWriter:
                 worksheet.append_rows(data, table_range="A1")
 
             logger.info("Written %d rows to '%s'", len(df), sheet_name)
-            return True
 
-        except Exception as e:
-            logger.exception("Failed to write to worksheet: %s", e)
+        except Exception:
+            logger.exception("Failed to write to worksheet")
             return False
+        else:
+            return True
 
     def write_sections(
         self,
         spreadsheet: Any,
         sheet_name: str,
         sections: dict[str, pd.DataFrame],
+        *,
         overwrite: bool = True,
     ) -> bool:
         if not spreadsheet:
@@ -150,10 +155,11 @@ class SheetsWriter:
                 logger.info("Written %d sections to '%s'", len(sections), sheet_name)
                 return True
             logger.warning("No data to write to '%s'", sheet_name)
-            return False
 
-        except Exception as e:
-            logger.exception("Failed to write sections: %s", e)
+        except Exception:
+            logger.exception("Failed to write sections")
+            return False
+        else:
             return False
 
     def write_metadata(
@@ -184,8 +190,9 @@ class SheetsWriter:
 
             worksheet.append_rows(data, table_range="A1")
             logger.info("Written metadata to '%s'", sheet_name)
-            return True
 
-        except Exception as e:
-            logger.exception("Failed to write metadata: %s", e)
+        except Exception:
+            logger.exception("Failed to write metadata")
             return False
+        else:
+            return True

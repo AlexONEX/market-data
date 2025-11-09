@@ -40,9 +40,10 @@ class StockanalysisConnector:
             value = float(text) * multiplier
             if is_percentage:
                 return value / 100 if value > 1 else value
-            return value
         except (ValueError, AttributeError):
             return text
+        else:
+            return value
 
     def _get_cleaned_financial_table(self, url: str) -> pd.DataFrame | None:
         """
@@ -65,17 +66,18 @@ class StockanalysisConnector:
             # Clean the index names (which are the metric names)
             df.index = [clean_column_name(name) for name in df.index]
 
-            return df
-        except RequestException as e:  # BLE001
+        except RequestException as e:
             logger.debug("Failed to get or clean table from %s: %s", url, e)  # G004
             return None
-        except Exception as e:  # Catch any other unexpected exceptions
+        except (ValueError, AttributeError, KeyError, IndexError) as e:
             logger.debug(
                 "An unexpected error occurred while getting/cleaning table from %s: %s",
                 url,
                 e,
             )
             return None
+        else:
+            return df
 
     def get_overview(self) -> dict[str, Any]:
         url = f"{self.base_url}/"
@@ -110,7 +112,7 @@ class StockanalysisConnector:
                 if match:
                     value = match.group(1)
                     overview_data[key] = self._parse_number(value)
-        except Exception as e:  # BLE001
+        except (AttributeError, ValueError, IndexError) as e:
             logger.debug("Error extracting overview data with regex: %s", e)  # G004
         return overview_data
 
@@ -143,10 +145,10 @@ class StockanalysisConnector:
         try:
             tables = pd.read_html(url, storage_options=self.HEADERS)
             return tables[0] if tables else None
-        except RequestException as e:  # BLE001
+        except RequestException as e:
             logger.debug("Failed to get dividends from %s: %s", url, e)  # G004
             return None
-        except Exception as e:  # Catch any other unexpected exceptions
+        except (ValueError, AttributeError, KeyError, IndexError) as e:
             logger.debug(
                 "An unexpected error occurred while getting dividends from %s: %s",
                 url,
