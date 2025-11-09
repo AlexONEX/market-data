@@ -90,17 +90,10 @@ class PuenteNetFetcher:
     def get_cashflows(
         self, ticker: str, nominal_value: int = 100
     ) -> List[Dict[str, Any]]:
-        """
-        Obtiene los flujos de fondos para un ticker dado, primero desde el caché/CSV,
-        luego desde PuenteNet si no se encuentran.
-        """
         if ticker in self._cashflow_cache:
             logging.info(f"Flujos de fondos para {ticker} encontrados en caché/CSV.")
             return self._cashflow_cache[ticker]
 
-        logging.info(
-            f"Flujos de fondos para {ticker} no encontrados en caché/CSV. Intentando obtener de PuenteNet..."
-        )
         raw_data = self._fetch_from_puentenet(ticker, nominal_value)
         if raw_data:
             parsed_cashflows = self.parse_cashflows(raw_data)
@@ -111,9 +104,6 @@ class PuenteNetFetcher:
         return []
 
     def _fetch_from_puentenet(self, ticker: str, nominal_value: int = 100) -> Any:
-        """
-        Obtiene los flujos de fondos para un ticker dado desde PuenteNet API.
-        """
         url = f"{self.BASE_URL}{self.CASHFLOW_ENDPOINT}"
         payload = {f"BONO_{ticker}": str(nominal_value)}
         headers = {
@@ -141,9 +131,6 @@ class PuenteNetFetcher:
             return None
 
     def parse_cashflows(self, raw_data: Any) -> List[Dict[str, Any]]:
-        """
-        Parsea los datos crudos de flujos de fondos de PuenteNet.
-        """
         if not raw_data or not isinstance(raw_data, dict):
             logging.warning("Datos crudos de flujo de fondos inválidos o vacíos.")
             return []
@@ -156,7 +143,6 @@ class PuenteNetFetcher:
 
         target_cashflows = None
 
-        # 1. Try with mapFlujosDTO (new format for some tickers)
         cashflows_by_currency = raw_data.get("mapFlujosDTO", {})
         if cashflows_by_currency and isinstance(cashflows_by_currency, dict):
             for currency_key in ["USD", "ARS", "PESOS"]:
@@ -167,7 +153,6 @@ class PuenteNetFetcher:
                 first_currency_key = list(cashflows_by_currency.keys())[0]
                 target_cashflows = cashflows_by_currency.get(first_currency_key)
 
-        # 2. Fallback to flujosMapDTO
         if not target_cashflows:
             target_cashflows = raw_data.get("flujosMapDTO", [])
 

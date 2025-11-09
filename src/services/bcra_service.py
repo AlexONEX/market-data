@@ -209,38 +209,18 @@ class BCRAService:
         }
 
     def get_principal_variable_data(self, variable_id: int) -> dict | None:
-        """
-        Fetches the latest value of a main BCRA variable.
-        Assumes the first element in the series is the most recent.
-
-        :param variable_id: The ID of the variable.
-        :return: A dictionary with the latest record data or None.
-        """
         data = self.connector.get_series_data(variable_id)
         if data:
-            return data[0]  # Returns the most recent record
+            return data[0]
         logger.warning(
             f"Could not retrieve the latest value for variable ID: {variable_id}"
         )
         return None
 
     def get_time_series_data(self, variable_id: int) -> list | None:
-        """
-        Fetches the complete time series data for a BCRA variable.
-
-        :param variable_id: The ID of the variable.
-        :return: A list of dictionaries with the entire time series or None.
-        """
         return self.connector.get_series_data(variable_id)
 
     def plot_bcra_series(self, variable_id: int, output_dir: str = "plots"):
-        """
-        Fetches the time series for a BCRA variable and plots it
-        using the generic plotting function.
-
-        :param variable_id: The ID of the variable to plot.
-        :param output_dir: Directory where the plot will be saved.
-        """
         description = self.variable_descriptions.get(
             variable_id, f"Variable ID: {variable_id}"
         )
@@ -265,7 +245,6 @@ class BCRAService:
         elif "Base" in description and "en %" in description:  # Tasa de Justicia
             y_label = "Tasa (%)"
 
-        # Generate a safe and readable filename
         safe_filename = f"{description.replace(' ', '_').replace('/', '_').replace(':', '').replace('%', 'pct').replace('(', '').replace(')', '').lower()}_id{variable_id}.png"
         safe_filename = "".join(
             c for c in safe_filename if c.isalnum() or c in ["_", "."]
