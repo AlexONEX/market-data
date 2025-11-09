@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-"""
-Main script to calculate TIRs and generate yield curves for bond portfolios.
-"""
 
 import os
 import csv
@@ -145,7 +142,9 @@ def _plot_single_curve(points, label, color, is_lecap):
                 times_for_fit = times
                 rates_for_fit = rates
 
-            if len(times_for_fit) > 2:  # Ensure enough points for fitting after exclusion
+            if (
+                len(times_for_fit) > 2
+            ):  # Ensure enough points for fitting after exclusion
                 deg = 2 if is_lecap else min(3, len(times_for_fit) - 1)
                 p = np.polyfit(times_for_fit, rates_for_fit, deg)
                 f = np.poly1d(p)
@@ -239,9 +238,7 @@ def _get_instrument_price(instrument_data: dict) -> Decimal:
     price_close = Decimal(str(instrument_data.get("c", "0")))
 
     price = (
-        price_close
-        if price_close > 0
-        else (price_ask if price_ask > 0 else price_bid)
+        price_close if price_close > 0 else (price_ask if price_ask > 0 else price_bid)
     )
     return price
 

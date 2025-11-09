@@ -21,18 +21,6 @@ def plot_time_series(
     y_label: str = "Valor",
     output_dir: str = "plots",
 ):
-    """
-    Generates a time series plot from a list of dictionaries.
-
-    Args:
-        data_list (list): List of dictionaries containing the data.
-        date_col (str): Name of the column containing dates.
-        value_col (str): Name of the column containing values to plot.
-        plot_title (str): Title of the plot.
-        output_filename (str): Filename to save the plot image (e.g., 'tna_plot.png').
-        y_label (str): Label for the Y-axis.
-        output_dir (str): Directory where the plot will be saved.
-    """
     if not data_list:
         logger.warning(f"No data to plot for '{plot_title}'. Skipping plot generation.")
         return
@@ -90,17 +78,6 @@ def plot_time_series(
 def plot_tem_vs_days_to_maturity(
     bond_data_list: list, plot_title: str, output_filename: str
 ):
-    """
-    Generates a scatter plot of TEM vs. Days to Maturity, fitting a smooth
-    polynomial curve to the data points.
-
-    Args:
-        bond_data_list (list): A list of dictionaries, where each dict is a bond analysis result
-                               from BondAnalyzer, containing 'ticker', 'maturity_date',
-                               'calculated_rates' (with 'TEM').
-        plot_title (str): The title for the plot.
-        output_filename (str): The filename to save the plot image (e.g., 'cer_curve.png').
-    """
     days_to_maturity = []
     tem_values = []
     labels = []
