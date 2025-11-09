@@ -26,14 +26,40 @@ OUTPUT_CSV = "src/data/tirs.csv"
 
 BOND_TICKERS = {
     "hard_dollar": [
-        "AL30", "GD30", "AL29", "GD29", "AE38",
-        "AL35", "GD35", "AL41", "GD38", "GD41", "AL46", "GD46",
+        "AL30",
+        "GD30",
+        "AL29",
+        "GD29",
+        "AE38",
+        "AL35",
+        "GD35",
+        "AL41",
+        "GD38",
+        "GD41",
+        "AL46",
+        "GD46",
     ],
     "lecap_boncap": [
-        "M10N5", "M15D5", "M16E6", "M27F6", "S10N5",
-        "S16E6", "S27F6", "S28N5", "S29Y6", "S30A6",
-        "S30O6", "T30E6", "T30J6", "TD5D", "T15D5",
-        "T15E7", "T30A6", "T30A7", "T30J6", "TY30P",
+        "M10N5",
+        "M15D5",
+        "M16E6",
+        "M27F6",
+        "S10N5",
+        "S16E6",
+        "S27F6",
+        "S28N5",
+        "S29Y6",
+        "S30A6",
+        "S30O6",
+        "T30E6",
+        "T30J6",
+        "TD5D",
+        "T15D5",
+        "T15E7",
+        "T30A6",
+        "T30A7",
+        "T30J6",
+        "TY30P",
     ],
 }
 
@@ -64,6 +90,77 @@ def get_all_data912_instruments() -> dict[str, dict]:
     return instruments_by_ticker
 
 
+def _plot_single_curve(points, label, color, is_lecap):
+    """Plots a single yield curve with optional smoothing and special handling for LECAP/BONCAP bonds."""
+    if not points:
+        return
+
+    points.sort(key=lambda x: x["time_to_maturity"])
+    times = np.array([p["time_to_maturity"] for p in points])
+
+    if is_lecap:
+        # Convert TIR to TEM
+        rates = np.array(
+            [float(((1 + float(p["tir"])) ** (1 / 12) - 1) * 100) for p in points]
+        )
+        labels = [
+            f"{p['ticker']} ({((1 + float(p['tir'])) ** (1 / 12) - 1) * 100:.2f}%)"
+            for p in points
+        ]
+    else:
+        rates = np.array([float(p["tir"] * 100) for p in points])
+        labels = [f"{p['ticker']} ({p['tir'] * 100:.2f}%)" for p in points]
+
+    plt.scatter(times, rates, label=f"{label} Points", color=color)
+
+    for i, txt in enumerate(labels):
+        plt.annotate(
+            txt,
+            (times[i], rates[i]),
+            textcoords="offset points",
+            xytext=(5, 5),
+            ha="left",
+        )
+
+    # Smooth curve
+    if len(times) > 2:
+        try:
+            # Exclude S16E6 from smoothing if it's an outlier in LECAP/BONCAP
+            if is_lecap:
+                # Find the index of S16E6
+                s16e6_index = -1
+                for i, p in enumerate(points):
+                    if p["ticker"] == "S16E6":
+                        s16e6_index = i
+                        break
+
+                if s16e6_index != -1:
+                    # Create new arrays excluding S16E6
+                    times_for_fit = np.delete(times, s16e6_index)
+                    rates_for_fit = np.delete(rates, s16e6_index)
+                else:
+                    times_for_fit = times
+                    rates_for_fit = rates
+            else:
+                times_for_fit = times
+                rates_for_fit = rates
+
+            if len(times_for_fit) > 2:  # Ensure enough points for fitting after exclusion
+                deg = 2 if is_lecap else min(3, len(times_for_fit) - 1)
+                p = np.polyfit(times_for_fit, rates_for_fit, deg)
+                f = np.poly1d(p)
+                t_smooth = np.linspace(times.min(), times.max(), 300)
+                rate_smooth = f(t_smooth)
+                plt.plot(t_smooth, rate_smooth, label=f"{label} Curve", color=color)
+            else:
+                # Fallback to simple line if not enough points for fitting
+                plt.plot(times, rates, linestyle="--", color=color, alpha=0.7)
+
+        except np.linalg.LinAlgError:
+            # Fallback to simple line if fitting fails
+            plt.plot(times, rates, linestyle="--", color=color, alpha=0.7)
+
+
 def plot_yield_curve(bond_data: list[dict], title: str, filename: str, today: date):
     """Generate and save a yield curve plot."""
     if not bond_data:
@@ -75,81 +172,19 @@ def plot_yield_curve(bond_data: list[dict], title: str, filename: str, today: da
     plt.title(title)
     plt.xlabel("Time to Maturity (days)" if is_lecap else "Time to Maturity (years)")
     if is_lecap:
-        plt.xscale('log')
+        plt.xscale("log")
     plt.ylabel("TEM (%)" if is_lecap else "TIR (%)")
     plt.grid(True)
 
-    def plot_curve(points, label, color):
-        if not points:
-            return
-
-        points.sort(key=lambda x: x["time_to_maturity"])
-        times = np.array([p["time_to_maturity"] for p in points])
-        
-        if is_lecap:
-            # Convert TIR to TEM
-            rates = np.array([float(((1 + float(p["tir"]))**(1/12) - 1) * 100) for p in points])
-            labels = [f"{p['ticker']} ({((1 + float(p['tir']))**(1/12) - 1) * 100:.2f}%)" for p in points]
-        else:
-            rates = np.array([float(p["tir"] * 100) for p in points])
-            labels = [f"{p['ticker']} ({p['tir'] * 100:.2f}%)" for p in points]
-
-        plt.scatter(times, rates, label=f'{label} Points', color=color)
-
-        for i, txt in enumerate(labels):
-            plt.annotate(
-                txt,
-                (times[i], rates[i]),
-                textcoords="offset points",
-                xytext=(5, 5),
-                ha="left",
-            )
-
-        # Smooth curve
-        if len(times) > 2:
-            try:
-                # Exclude S16E6 from smoothing if it's an outlier in LECAP/BONCAP
-                if is_lecap:
-                    # Find the index of S16E6
-                    s16e6_index = -1
-                    for i, p in enumerate(points):
-                        if p["ticker"] == "S16E6":
-                            s16e6_index = i
-                            break
-                    
-                    if s16e6_index != -1:
-                        # Create new arrays excluding S16E6
-                        times_for_fit = np.delete(times, s16e6_index)
-                        rates_for_fit = np.delete(rates, s16e6_index)
-                    else:
-                        times_for_fit = times
-                        rates_for_fit = rates
-                else:
-                    times_for_fit = times
-                    rates_for_fit = rates
-
-                if len(times_for_fit) > 2: # Ensure enough points for fitting after exclusion
-                    deg = 2 if is_lecap else min(3, len(times_for_fit) - 1)
-                    p = np.polyfit(times_for_fit, rates_for_fit, deg)
-                    f = np.poly1d(p)
-                    t_smooth = np.linspace(times.min(), times.max(), 300)
-                    rate_smooth = f(t_smooth)
-                    plt.plot(t_smooth, rate_smooth, label=f'{label} Curve', color=color)
-                else:
-                    # Fallback to simple line if not enough points for fitting
-                    plt.plot(times, rates, linestyle='--', color=color, alpha=0.7)
-
-            except np.linalg.LinAlgError:
-                # Fallback to simple line if fitting fails
-                plt.plot(times, rates, linestyle='--', color=color, alpha=0.7)
-
-
     if "Hard Dollar" in title:
-        globales = []
-        ley_arg = []
+        plot_points = []
         for bond in bond_data:
             if bond.get("tir") is not None and bond.get("maturity_date") is not None:
-                time_to_maturity = (bond["maturity_date"] - today).days if is_lecap else (bond["maturity_date"] - today).days / 365.25
+                time_to_maturity = (
+                    (bond["maturity_date"] - today).days
+                    if is_lecap
+                    else (bond["maturity_date"] - today).days / 365.25
+                )
                 if time_to_maturity > 0:
                     point = {
                         "ticker": bond["ticker"],
@@ -160,16 +195,20 @@ def plot_yield_curve(bond_data: list[dict], title: str, filename: str, today: da
                         globales.append(point)
                     else:
                         ley_arg.append(point)
-        
-        plot_curve(globales, "Globales", "blue")
-        plot_curve(ley_arg, "Ley Argentina", "green")
+
+        _plot_single_curve(globales, "Globales", "blue", is_lecap)
+        _plot_single_curve(ley_arg, "Ley Argentina", "green", is_lecap)
         plt.legend()
 
     else:
         plot_points = []
         for bond in bond_data:
             if bond.get("tir") is not None and bond.get("maturity_date") is not None:
-                time_to_maturity = (bond["maturity_date"] - today).days if is_lecap else (bond["maturity_date"] - today).days / 365.25
+                time_to_maturity = (
+                    (bond["maturity_date"] - today).days
+                    if is_lecap
+                    else (bond["maturity_date"] - today).days / 365.25
+                )
                 if time_to_maturity > 0:
                     plot_points.append(
                         {
@@ -178,13 +217,33 @@ def plot_yield_curve(bond_data: list[dict], title: str, filename: str, today: da
                             "tir": bond["tir"],
                         }
                     )
-        plot_curve(plot_points, title, "blue")
-
+        _plot_single_curve(plot_points, title, "blue", is_lecap)
 
     plt.tight_layout()
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     plt.savefig(filename)
     plt.close()
+
+
+def _get_bond_tickers(bond_type: str, ticker_base: str) -> tuple[str, str]:
+    """Determines data912 and PuenteNet tickers based on bond type."""
+    if bond_type == "hard_dollar":
+        return ticker_base + "D", ticker_base
+    return ticker_base, ticker_base
+
+
+def _get_instrument_price(instrument_data: dict) -> Decimal:
+    """Determines the instrument price from available bid, ask, or close prices."""
+    price_bid = Decimal(str(instrument_data.get("px_bid", "0")))
+    price_ask = Decimal(str(instrument_data.get("px_ask", "0")))
+    price_close = Decimal(str(instrument_data.get("c", "0")))
+
+    price = (
+        price_close
+        if price_close > 0
+        else (price_ask if price_ask > 0 else price_bid)
+    )
+    return price
 
 
 def main():
@@ -203,27 +262,16 @@ def main():
 
         for bond_type, tickers in BOND_TICKERS.items():
             for ticker_base in tickers:
-                if bond_type == "hard_dollar":
-                    ticker_data912 = ticker_base + "D"
-                    puentenet_ticker = ticker_base
-                else:
-                    ticker_data912 = ticker_base
-                    puentenet_ticker = ticker_base
+                ticker_data912, puentenet_ticker = _get_bond_tickers(
+                    bond_type, ticker_base
+                )
 
                 instrument_data = all_data912_instruments.get(ticker_data912)
 
                 if not instrument_data:
                     continue
 
-                price_bid = Decimal(str(instrument_data.get("px_bid", "0")))
-                price_ask = Decimal(str(instrument_data.get("px_ask", "0")))
-                price_close = Decimal(str(instrument_data.get("c", "0")))
-
-                price = (
-                    price_close
-                    if price_close > 0
-                    else (price_ask if price_ask > 0 else price_bid)
-                )
+                price = _get_instrument_price(instrument_data)
 
                 if price <= 0:
                     continue
@@ -261,7 +309,6 @@ def main():
                     )
                     processed_count += 1
 
-    # Generate yield curves
     hard_dollar_bonds = [b for b in results if b["type"] == "hard_dollar"]
     plot_yield_curve(
         hard_dollar_bonds,
