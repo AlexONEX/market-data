@@ -15,7 +15,7 @@ logger.setLevel(logging.INFO)
 class PuenteNetConnector:
     BASE_URL = "https://www.puentenet.com/"
     CASHFLOW_ENDPOINT = "herramientas/flujo-de-fondos/calcular"
-    CASHFLOW_CSV = Path("src/data/cashflows.csv")
+    CASHFLOW_CSV = Path("data/cashflows.csv")
 
     def __init__(self):
         self._cashflow_cache: dict[str, list[dict[str, Any]]] = {}
