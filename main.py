@@ -2,9 +2,9 @@
 
 import csv
 import logging
-import os
-from datetime import date
+from datetime import UTC, date, datetime
 from decimal import Decimal
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -15,11 +15,12 @@ from src.gateway.puentenet_fetcher import PuenteNetFetcher
 from src.domain.financial_math import calculate_tir
 
 # Minimal logging - only errors and critical info
-logging.basicConfig(level=logging.ERROR)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 URL_BONDS = "https://data912.com/live/arg_bonds"
 URL_NOTES = "https://data912.com/live/arg_notes"
-OUTPUT_CSV = "src/data/tirs.csv"
+OUTPUT_CSV = Path("src/data/tirs.csv")
 
 BOND_TICKERS = {
     "hard_dollar": [
@@ -59,6 +60,8 @@ BOND_TICKERS = {
         "TY30P",
     ],
 }
+
+MIN_POINTS_FOR_SMOOTHING = 3
 
 
 def fetch_instruments_from_data912(url: str) -> list[dict]:
@@ -120,7 +123,7 @@ def _plot_single_curve(points, label, color, is_lecap):
         )
 
     # Smooth curve
-    if len(times) > 2:
+    if len(times) > MIN_POINTS_FOR_SMOOTHING:
         try:
             # Exclude S16E6 from smoothing if it's an outlier in LECAP/BONCAP
             if is_lecap:
@@ -143,7 +146,7 @@ def _plot_single_curve(points, label, color, is_lecap):
                 rates_for_fit = rates
 
             if (
-                len(times_for_fit) > 2
+                len(times_for_fit) > MIN_POINTS_FOR_SMOOTHING
             ):  # Ensure enough points for fitting after exclusion
                 deg = 2 if is_lecap else min(3, len(times_for_fit) - 1)
                 p = np.polyfit(times_for_fit, rates_for_fit, deg)
@@ -222,8 +225,9 @@ def plot_yield_curve(bond_data: list[dict], title: str, filename: str, today: da
         _plot_single_curve(plot_points, title, "blue", is_lecap)
 
     plt.tight_layout()
-    os.makedirs(os.path.dirname(filename), exist_ok=True)
-    plt.savefig(filename)
+    output_path = Path(filename)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(output_path)
     plt.close()
 
 
@@ -240,10 +244,9 @@ def _get_instrument_price(instrument_data: dict) -> Decimal:
     price_ask = Decimal(str(instrument_data.get("px_ask", "0")))
     price_close = Decimal(str(instrument_data.get("c", "0")))
 
-    price = (
+    return (
         price_close if price_close > 0 else (price_ask if price_ask > 0 else price_bid)
     )
-    return price
 
 
 def main():
@@ -252,9 +255,9 @@ def main():
     all_data912_instruments = get_all_data912_instruments()
 
     results = []
-    today = date.today()
+    today = datetime.now(UTC).date()
 
-    with open(OUTPUT_CSV, "w", newline="") as csvfile:
+    with OUTPUT_CSV.open("w", newline="") as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(["Ticker", "Type", "Price", "TIR (%)", "Maturity Date"])
 
@@ -325,8 +328,8 @@ def main():
         today,
     )
 
-    print(f"Processed {processed_count} instruments")
-    print(f"Results saved to {OUTPUT_CSV}")
+    logger.info("Processed %d instruments", processed_count)
+    logger.info("Results saved to %s", OUTPUT_CSV)
 
 
 if __name__ == "__main__":

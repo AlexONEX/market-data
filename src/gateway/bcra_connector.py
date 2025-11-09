@@ -22,7 +22,7 @@ class BCRAAPIConnector:
         logger.info("Inicializando BCRAAPIConnector.")
         # No se requiere autenticación ni manejo de tokens para esta API pública.
 
-    def get_series_data(self, variable_id: int): # Made public
+    def get_series_data(self, variable_id: int):  # Made public
         url = f"{self.BASE_URL}/{variable_id}"
         try:
             response = requests.get(url, timeout=10)

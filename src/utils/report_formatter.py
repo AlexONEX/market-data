@@ -23,7 +23,9 @@ class ReportFormatter:
 
         if df is None or not isinstance(df, pd.DataFrame) or df.empty:
             return pd.DataFrame(
-                {"Error": [f"No {sheet_name.replace('_', ' ')} data available"]} # UP031 - converted f-string
+                {
+                    "Error": [f"No {sheet_name.replace('_', ' ')} data available"]
+                }  # UP031 - converted f-string
             )
 
         # The first column is the index, so we reset it to make it a regular column
@@ -67,12 +69,18 @@ class ReportFormatter:
         for category_name, metrics in all_metrics.items():
             if not metrics:
                 continue
-            rows.append([f"=== {category_name.upper()} ==="]) # UP031 - converted f-string
+            rows.append(
+                [f"=== {category_name.upper()} ==="]
+            )  # UP031 - converted f-string
             for metric_name, metric_data in metrics.items():
                 value = metric_data["value"]
                 metric_type = metric_data["type"]
-                formatted = self._format_metric_value(value, metric_type) # SLF001 fixed: call ReportFormatter's own method
-                rows.append([metric_name, formatted, metric_type.value]) # .value to get string representation
+                formatted = self._format_metric_value(
+                    value, metric_type
+                )  # SLF001 fixed: call ReportFormatter's own method
+                rows.append(
+                    [metric_name, formatted, metric_type.value]
+                )  # .value to get string representation
             rows.append([])
         if rows:
             return pd.DataFrame(rows, columns=["Metric", "Value", "Type"])
@@ -82,7 +90,7 @@ class ReportFormatter:
         """
         Generates all sheets, returning the raw, unfiltered data for the main financial tables.
         """
-        return { # RET504 fixed: removed 'sheets ='
+        return {  # RET504 fixed: removed 'sheets ='
             "Overview": self.generate_overview_sheet(),
             "Metrics": self.generate_metrics_sheet(),
             "Income_Statement": self._get_raw_sheet("income_statement"),
@@ -97,7 +105,7 @@ class ReportFormatter:
             return "N/A"
         try:
             value = float(value)
-            return f"${value:,.2f}" # UP031 - converted f-string
+            return f"${value:,.2f}"  # UP031 - converted f-string
         except (ValueError, TypeError):
             return str(value)
 
@@ -106,7 +114,7 @@ class ReportFormatter:
             return "N/A"
         try:
             value = float(value)
-            return f"{value:.2%}" # UP031 - converted f-string
+            return f"{value:.2%}"  # UP031 - converted f-string
         except (ValueError, TypeError):
             return str(value)
 
@@ -116,7 +124,7 @@ class ReportFormatter:
         try:
             value = float(value)
             if value == int(value):
-                return f"{int(value):,}" # UP031 - converted f-string
-            return f"{value:,.2f}" # UP031 - converted f-string
+                return f"{int(value):,}"  # UP031 - converted f-string
+            return f"{value:,.2f}"  # UP031 - converted f-string
         except (ValueError, TypeError):
             return str(value)

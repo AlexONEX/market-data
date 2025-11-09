@@ -11,6 +11,7 @@ import json
 import logging
 import os
 import sys
+import traceback
 from pathlib import Path
 
 import pandas as pd
@@ -60,7 +61,7 @@ def main():
     args = parser.parse_args()
 
     try:
-        print(f"Fetching {args.period} data for {args.ticker.upper()}...")
+        logger.info("Fetching %s data for %s...", args.period, args.ticker.upper())
 
         # Fetch data from multiple sources
         data_service = FinancialDataService(fmp_api_key=args.fmp_key)
@@ -102,10 +103,10 @@ def main():
 
         output_file = output_dir / f"{args.ticker.lower()}_{args.period}.json"
 
-        with open(output_file, "w") as f:
+        with output_file.open("w") as f:
             json.dump(data_to_save, f, indent=2)
 
-        print(f"JSON to {output_file.resolve().relative_to(Path.cwd())}")
+        logger.info("JSON to %s", output_file.resolve().relative_to(Path.cwd()))
 
         # Format data for sheets
         formatter = ReportFormatter(financial_data)
@@ -125,27 +126,25 @@ def main():
                 df.to_csv(sheet_file, index=False)
                 sheet_count += 1
 
-        print(
-            f"Generated {sheet_count} sheets in {sheets_dir.resolve().relative_to(Path.cwd())}/"
+        logger.info(
+            "Generated %d sheets in %s/",
+            sheet_count,
+            sheets_dir.resolve().relative_to(Path.cwd()),
         )
         sources_list = ", ".join(
             s for s in financial_data.get("sources", {}).values() if s
         )
-        print(f"\nData sources: {sources_list}")
-
-        return 0
+        logger.info("Data sources: %s", sources_list)
 
     except KeyboardInterrupt:
-        print("\n✗ Cancelled")
+        logger.info("\n✗ Cancelled")
         return 130
-
-    except Exception as e:
-        print(f"✗ Error: {e}")
-        import traceback
-
+    except Exception:
+        logger.exception("✗ Error:")
         traceback.print_exc()
-        logger.debug(e, exc_info=True)
         return 1
+    else:
+        return 0
 
 
 if __name__ == "__main__":

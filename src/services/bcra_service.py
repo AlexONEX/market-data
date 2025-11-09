@@ -51,7 +51,7 @@ class BCRAService:
             40: "Índice para Contratos de Locación (ICL-Ley 27.551, con dos decimales, base 30.6.20=1)",
             41: "Tasas de interés de las operaciones de pase pasivas para el BCRA, a 1 día de plazo (en % e.a.)",
             42: "Pases pasivos para el BCRA - Saldos (en millones de pesos)",
-            43: "Tasa de interés para uso de la Justicia - Comunicado P 14290 | Base 01/04/1991 (en %)", # RUF001
+            43: "Tasa de interés para uso de la Justicia - Comunicado P 14290 | Base 01/04/1991 (en %)",  # RUF001
             44: "TAMAR en pesos de bancos privados (en % n.a.)",
             45: "TAMAR en pesos de bancos privados (en % e.a.)",
             46: "Total de factores de explicación de la variación de la Base Monetaria (en millones de $)",
@@ -209,7 +209,7 @@ class BCRAService:
         }
 
     def get_principal_variable_data(self, variable_id: int) -> dict | None:
-        data = self.connector._get_series_data(variable_id) # SLF001
+        data = self.connector._get_series_data(variable_id)  # SLF001
         if data:
             return data[0]
         logger.warning(
@@ -218,17 +218,20 @@ class BCRAService:
         return None
 
     def get_time_series_data(self, variable_id: int) -> list | None:
-        return self.connector._get_series_data(variable_id) # SLF001
+        return self.connector._get_series_data(variable_id)  # SLF001
 
     def plot_bcra_series(self, variable_id: int, output_dir: str = "plots"):
         description = self.variable_descriptions.get(
-            variable_id, f"Variable ID: {variable_id}" # UP031
+            variable_id,
+            f"Variable ID: {variable_id}",  # UP031
         )
         data_results = self.get_time_series_data(variable_id)
 
         if not data_results:
             logger.warning(
-                "No data retrieved to plot series for %s (ID: %s).", description, variable_id
+                "No data retrieved to plot series for %s (ID: %s).",
+                description,
+                variable_id,
             )
             return
 
@@ -286,7 +289,7 @@ if __name__ == "__main__":
             "Latest %s: %s (Fecha: %s)",
             bcra_service.variable_descriptions.get(tpm_id),
             latest_tpm.get("valor"),
-            latest_tpm.get("fecha")
+            latest_tpm.get("fecha"),
         )
 
     # Tipo de Cambio Minorista ($ por USD)
@@ -297,5 +300,5 @@ if __name__ == "__main__":
             "Latest %s: %s (Fecha: %s)",
             bcra_service.variable_descriptions.get(tc_minorista_id),
             latest_tc_minorista.get("valor"),
-            latest_tc_minorista.get("fecha")
+            latest_tc_minorista.get("fecha"),
         )

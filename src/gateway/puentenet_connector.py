@@ -30,7 +30,11 @@ class PuenteNetFetcher:
             reader = csv.DictReader(file)
             for row in reader:
                 ticker = row["Ticker"]
-                payment_date = datetime.strptime(row["PaymentDate"], "%Y-%m-%d").replace(tzinfo=UTC).date()
+                payment_date = (
+                    datetime.strptime(row["PaymentDate"], "%Y-%m-%d")
+                    .replace(tzinfo=UTC)
+                    .date()
+                )
                 total_payment = Decimal(row["TotalPayment"])
                 amortization = Decimal(row["Amortization"])
                 interest = Decimal(row["Interest"])
@@ -46,7 +50,9 @@ class PuenteNetFetcher:
                     }
                 )
         logger.info(
-            "Loaded %d tickers with cash flows from %s", len(self._cashflow_cache), self.CASHFLOW_CSV
+            "Loaded %d tickers with cash flows from %s",
+            len(self._cashflow_cache),
+            self.CASHFLOW_CSV,
         )
 
     def _save_cashflows_to_csv(self, ticker: str, cashflows: list[dict[str, Any]]):
@@ -86,7 +92,8 @@ class PuenteNetFetcher:
             return self._cashflow_cache[ticker]
 
         logger.info(
-            "Cash flows for %s not found in cache/CSV. Attempting to fetch from PuenteNet...", ticker
+            "Cash flows for %s not found in cache/CSV. Attempting to fetch from PuenteNet...",
+            ticker,
         )
 
         raw_data = self._fetch_from_puentenet(ticker, nominal_value)
@@ -113,11 +120,15 @@ class PuenteNetFetcher:
             logger.info("Cash flow data for %s obtained from PuenteNet.", ticker)
             return response.json()
         except RequestException as e:
-            logger.exception("Error fetching cash flows for %s from PuenteNet: %s", ticker, e)
+            logger.exception(
+                "Error fetching cash flows for %s from PuenteNet: %s", ticker, e
+            )
             return None
         except ValueError:
             logger.exception(
-                "Error decoding PuenteNet JSON for %s. Response: %s", ticker, response.text if response else "No response" # Q000
+                "Error decoding PuenteNet JSON for %s. Response: %s",
+                ticker,
+                response.text if response else "No response",  # Q000
             )
             return None
 
@@ -146,7 +157,8 @@ class PuenteNetFetcher:
 
         if not target_cashflows or not isinstance(target_cashflows, list):
             logger.warning(
-                "PuenteNet response structure does not contain expected cash flows. Response: %s", raw_data
+                "PuenteNet response structure does not contain expected cash flows. Response: %s",
+                raw_data,
             )
             return []
 

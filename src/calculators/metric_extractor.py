@@ -61,7 +61,10 @@ class MetricExtractor:
                 return value
 
         logger.debug(
-            "Metric '%s' not found with keys: %s, %s", metric_def.name, metric_def.data_key, metric_def.alt_keys
+            "Metric '%s' not found with keys: %s, %s",
+            metric_def.name,
+            metric_def.data_key,
+            metric_def.alt_keys,
         )
         return None
 
@@ -112,7 +115,7 @@ class MetricExtractor:
             rows.append(
                 {
                     "Metric": metric_name,
-                    "Value": value, # Pass raw value
+                    "Value": value,  # Pass raw value
                     "Type": metric_type,
                 }
             )

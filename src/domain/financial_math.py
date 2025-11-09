@@ -48,7 +48,7 @@ def calculate_tir(
                 denominator = Decimal("1.0") + rate
                 if denominator == 0:
                     return Decimal("NaN")
-                total_npv += amounts[i] / (denominator ** exponent)
+                total_npv += amounts[i] / (denominator**exponent)
             except InvalidOperation:
                 return Decimal("NaN")
         return total_npv - price
@@ -86,7 +86,9 @@ def calculate_tir(
 
         if abs(npv_val) < Decimal("1e-9"):
             logger.debug(
-                "calculate_tir: Convergencia alcanzada en %d iteraciones. TIR=%.6f", i, guess
+                "calculate_tir: Convergencia alcanzada en %d iteraciones. TIR=%.6f",
+                i,
+                guess,
             )
             return guess
 

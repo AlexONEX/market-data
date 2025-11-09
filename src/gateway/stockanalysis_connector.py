@@ -66,11 +66,15 @@ class StockanalysisConnector:
             df.index = [clean_column_name(name) for name in df.index]
 
             return df
-        except RequestException as e: # BLE001
-            logger.debug("Failed to get or clean table from %s: %s", url, e) # G004
+        except RequestException as e:  # BLE001
+            logger.debug("Failed to get or clean table from %s: %s", url, e)  # G004
             return None
-        except Exception as e: # Catch any other unexpected exceptions
-            logger.debug("An unexpected error occurred while getting/cleaning table from %s: %s", url, e)
+        except Exception as e:  # Catch any other unexpected exceptions
+            logger.debug(
+                "An unexpected error occurred while getting/cleaning table from %s: %s",
+                url,
+                e,
+            )
             return None
 
     def get_overview(self) -> dict[str, Any]:
@@ -106,8 +110,8 @@ class StockanalysisConnector:
                 if match:
                     value = match.group(1)
                     overview_data[key] = self._parse_number(value)
-        except Exception as e: # BLE001
-            logger.debug("Error extracting overview data with regex: %s", e) # G004
+        except Exception as e:  # BLE001
+            logger.debug("Error extracting overview data with regex: %s", e)  # G004
         return overview_data
 
     def get_income_statement(self, period: str = "quarterly") -> pd.DataFrame | None:
@@ -139,11 +143,15 @@ class StockanalysisConnector:
         try:
             tables = pd.read_html(url, storage_options=self.HEADERS)
             return tables[0] if tables else None
-        except RequestException as e: # BLE001
-            logger.debug("Failed to get dividends from %s: %s", url, e) # G004
+        except RequestException as e:  # BLE001
+            logger.debug("Failed to get dividends from %s: %s", url, e)  # G004
             return None
-        except Exception as e: # Catch any other unexpected exceptions
-            logger.debug("An unexpected error occurred while getting dividends from %s: %s", url, e)
+        except Exception as e:  # Catch any other unexpected exceptions
+            logger.debug(
+                "An unexpected error occurred while getting dividends from %s: %s",
+                url,
+                e,
+            )
             return None
 
     def get_all_data(self, period: str = "quarterly") -> dict[str, Any]:

@@ -26,7 +26,9 @@ def plot_time_series(
     output_dir: str = "plots",
 ):
     if not data_list:
-        logger.warning("No data to plot for '%s'. Skipping plot generation.", plot_title)
+        logger.warning(
+            "No data to plot for '%s'. Skipping plot generation.", plot_title
+        )
         return
 
     df = pd.DataFrame(data_list)
@@ -36,7 +38,10 @@ def plot_time_series(
         df[value_col] = pd.to_numeric(df[value_col])
     except KeyError as e:
         logger.exception(
-            "Required columns '%s' or '%s' not found in data: %s", date_col, value_col, e
+            "Required columns '%s' or '%s' not found in data: %s",
+            date_col,
+            value_col,
+            e,
         )
         return
     except ValueError as e:
@@ -81,7 +86,10 @@ def plot_time_series(
 
 
 def plot_tem_vs_days_to_maturity(
-    bond_data_list: list, plot_title: str, output_filename: str, output_dir: str = "plots" # F821
+    bond_data_list: list,
+    plot_title: str,
+    output_filename: str,
+    output_dir: str = "plots",  # F821
 ):
     days_to_maturity = []
     tem_values = []
@@ -95,7 +103,9 @@ def plot_tem_vs_days_to_maturity(
 
         if maturity_date_str and maturity_date_str != "N/A" and tem is not None:
             try:
-                maturity_date = datetime.strptime(maturity_date_str, "%Y-%m-%d").replace(tzinfo=UTC)
+                maturity_date = datetime.strptime(
+                    maturity_date_str, "%Y-%m-%d"
+                ).replace(tzinfo=UTC)
                 delta = maturity_date - current_date
 
                 if delta.days > 0:
@@ -104,25 +114,36 @@ def plot_tem_vs_days_to_maturity(
                     labels.append(ticker)
                 else:
                     logger.warning(
-                        "Skipping %s: Maturity date is in the past or today (%s).", ticker, maturity_date_str
+                        "Skipping %s: Maturity date is in the past or today (%s).",
+                        ticker,
+                        maturity_date_str,
                     )
             except ValueError:
                 logger.warning(
-                    "Could not parse maturity date for %s: %s. Skipping.", ticker, maturity_date_str
+                    "Could not parse maturity date for %s: %s. Skipping.",
+                    ticker,
+                    maturity_date_str,
                 )
         else:
             logger.warning(
-                "Skipping %s: Missing maturity date (%s) or TEM (%s).", ticker, maturity_date_str, tem
+                "Skipping %s: Missing maturity date (%s) or TEM (%s).",
+                ticker,
+                maturity_date_str,
+                tem,
             )
 
     if len(days_to_maturity) < MIN_DATA_POINTS_FOR_CURVE:
         logger.info(
-            "Not enough valid data points (found %d) to plot for '%s'. Skipping.", len(days_to_maturity), plot_title
+            "Not enough valid data points (found %d) to plot for '%s'. Skipping.",
+            len(days_to_maturity),
+            plot_title,
         )
         return
 
     sorted_data = sorted(zip(days_to_maturity, tem_values, labels, strict=True))
-    days_to_maturity_sorted, tem_values_sorted, labels_sorted = zip(*sorted_data, strict=True)
+    days_to_maturity_sorted, tem_values_sorted, labels_sorted = zip(
+        *sorted_data, strict=True
+    )
 
     x_data = np.array(days_to_maturity_sorted)
     y_data = np.array(tem_values_sorted)
@@ -167,7 +188,7 @@ def plot_tem_vs_days_to_maturity(
         )
 
     plt.title(
-        f"{plot_title} - TEM vs. Días a Vencimiento ({current_date.strftime('%Y-%m-%d')})", # UP031
+        f"{plot_title} - TEM vs. Días a Vencimiento ({current_date.strftime('%Y-%m-%d')})",  # UP031
         fontsize=18,
         pad=20,
     )

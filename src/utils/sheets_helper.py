@@ -19,7 +19,9 @@ class SheetsWriter:
             logger.exception("Failed to connect to Google Sheets: %s", e)
             self.gc = None
         except Exception as e:
-            logger.exception("An unexpected error occurred during Google Sheets connection: %s", e)
+            logger.exception(
+                "An unexpected error occurred during Google Sheets connection: %s", e
+            )
             self.gc = None
 
     def get_or_create_spreadsheet(
@@ -114,7 +116,11 @@ class SheetsWriter:
 
         try:
             worksheet = self._get_or_create_worksheet(
-                spreadsheet, sheet_name, overwrite=overwrite, default_rows=5000, default_cols=50
+                spreadsheet,
+                sheet_name,
+                overwrite=overwrite,
+                default_rows=5000,
+                default_cols=50,
             )
 
             # Build combined data with section headers
@@ -124,7 +130,7 @@ class SheetsWriter:
                     continue
 
                 # Add section header
-                all_data.append([f"=== {section_name.upper()} ==="]) # UP031
+                all_data.append([f"=== {section_name.upper()} ==="])  # UP031
                 all_data.append([])
 
                 # Add column headers
@@ -162,7 +168,11 @@ class SheetsWriter:
 
         try:
             worksheet = self._get_or_create_worksheet(
-                spreadsheet, sheet_name, overwrite=True, default_rows=200, default_cols=20
+                spreadsheet,
+                sheet_name,
+                overwrite=True,
+                default_rows=200,
+                default_cols=20,
             )
 
             # Convert metadata to rows

@@ -95,7 +95,7 @@ class FinancialDataService:
         try:
             connector = StockanalysisConnector(ticker)
             return connector.get_all_data(period=period)
-        except Exception as e: # BLE001
+        except Exception as e:  # BLE001
             logger.debug("Failed to fetch from stockanalysis.com: %s", e)
             return {}
 
@@ -107,7 +107,7 @@ class FinancialDataService:
             try:
                 if hasattr(stock, "info"):
                     overview = stock.info if isinstance(stock.info, dict) else {}
-            except Exception as e: # BLE001, S110
+            except Exception as e:  # BLE001, S110
                 logger.debug("Failed to get overview from yfinance: %s", e)
 
             income_stmt = None
@@ -116,7 +116,7 @@ class FinancialDataService:
                     income_stmt = stock.income_stmt
                 elif period == "quarterly" and hasattr(stock, "quarterly_income_stmt"):
                     income_stmt = stock.quarterly_income_stmt
-            except Exception as e: # BLE001, S110
+            except Exception as e:  # BLE001, S110
                 logger.debug("Failed to get income statement from yfinance: %s", e)
 
             balance_sheet = None
@@ -127,7 +127,7 @@ class FinancialDataService:
                     stock, "quarterly_balance_sheet"
                 ):
                     balance_sheet = stock.quarterly_balance_sheet
-            except Exception as e: # BLE001, S110
+            except Exception as e:  # BLE001, S110
                 logger.debug("Failed to get balance sheet from yfinance: %s", e)
 
             cash_flow = None
@@ -136,10 +136,10 @@ class FinancialDataService:
                     cash_flow = stock.cashflow
                 elif period == "quarterly" and hasattr(stock, "quarterly_cashflow"):
                     cash_flow = stock.quarterly_cashflow
-            except Exception as e: # BLE001, S110
+            except Exception as e:  # BLE001, S110
                 logger.debug("Failed to get cash flow from yfinance: %s", e)
 
-            return { # RET504, TRY300
+            return {  # RET504, TRY300
                 "overview": overview,
                 "income_statement": income_stmt,
                 "balance_sheet": balance_sheet,
@@ -147,7 +147,7 @@ class FinancialDataService:
                 "ratios": None,
             }
 
-        except Exception as e: # BLE001
+        except Exception as e:  # BLE001
             logger.debug("Failed to fetch from yfinance: %s", e)
             return {}
 
@@ -168,12 +168,12 @@ class FinancialDataService:
             # TRY300
             return None
 
-        except (RequestException, HTTPError) as e: # BLE001
+        except (RequestException, HTTPError) as e:  # BLE001
             logger.debug("Failed to fetch peers from FMP: %s", e)
             return None
-        except ValueError as e: # For JSON decoding errors
+        except ValueError as e:  # For JSON decoding errors
             logger.debug("Failed to decode FMP peers JSON: %s", e)
             return None
-        except Exception as e: # Catch any other unexpected exceptions
+        except Exception as e:  # Catch any other unexpected exceptions
             logger.debug("An unexpected error occurred while fetching FMP peers: %s", e)
             return None
