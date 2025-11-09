@@ -34,7 +34,5 @@ class BCRAAPIConnector:
             logger.exception("Error when connecting to BCRA API")
             return None
         except ValueError:
-            logger.exception(
-                "Error when parsing api response for ID %s", variable_id
-            )
+            logger.exception("Error when parsing api response for ID %s", variable_id)
             return None

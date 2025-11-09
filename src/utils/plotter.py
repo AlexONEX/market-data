@@ -164,7 +164,9 @@ def _plot_scatter_and_curve(x_data, y_data):
         )
 
 
-def _add_plot_labels_and_formatting(x_data, sorted_data: tuple, *, plot_title, current_date):
+def _add_plot_labels_and_formatting(
+    x_data, sorted_data: tuple, *, plot_title, current_date
+):
     """
     Add labels, formatting, and styling to the plot.
 
@@ -209,7 +211,9 @@ def plot_tem_vs_days_to_maturity(
 ):
     """Plot TEM vs days to maturity for a list of bonds."""
     current_date = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
-    days_to_maturity, tem_values, labels = _extract_bond_data(bond_data_list, current_date)
+    days_to_maturity, tem_values, labels = _extract_bond_data(
+        bond_data_list, current_date
+    )
 
     if len(days_to_maturity) < MIN_DATA_POINTS_FOR_CURVE:
         logger.info(
@@ -227,7 +231,12 @@ def plot_tem_vs_days_to_maturity(
 
     plt.figure(figsize=(16, 9))
     _plot_scatter_and_curve(x_data, y_data)
-    _add_plot_labels_and_formatting(x_data, (days_sorted, tem_sorted, labels_sorted), plot_title=plot_title, current_date=current_date)
+    _add_plot_labels_and_formatting(
+        x_data,
+        (days_sorted, tem_sorted, labels_sorted),
+        plot_title=plot_title,
+        current_date=current_date,
+    )
 
     plt.tight_layout(pad=3.0)
     plt.figtext(
