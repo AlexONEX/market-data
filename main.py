@@ -176,7 +176,8 @@ def plot_yield_curve(bond_data: list[dict], title: str, filename: str, today: da
     plt.grid(True)
 
     if "Hard Dollar" in title:
-        plot_points = []
+        global_bonds = []
+        argentinian_law_bonds = []
         for bond in bond_data:
             if bond.get("tir") is not None and bond.get("maturity_date") is not None:
                 time_to_maturity = (
@@ -191,12 +192,12 @@ def plot_yield_curve(bond_data: list[dict], title: str, filename: str, today: da
                         "tir": bond["tir"],
                     }
                     if bond["ticker"].startswith("GD"):
-                        globales.append(point)
+                        global_bonds.append(point)
                     else:
-                        ley_arg.append(point)
+                        argentinian_law_bonds.append(point)
 
-        _plot_single_curve(globales, "Globales", "blue", is_lecap)
-        _plot_single_curve(ley_arg, "Ley Argentina", "green", is_lecap)
+        _plot_single_curve(global_bonds, "Global Bonds", "blue", is_lecap)
+        _plot_single_curve(argentinian_law_bonds, "Argentinian Law Bonds", "green", is_lecap)
         plt.legend()
 
     else:
@@ -244,7 +245,7 @@ def _get_instrument_price(instrument_data: dict) -> Decimal:
 
 
 def main():
-    """Calculate TIRs and generate yield curves for hard dollar and LECAP bonds."""
+    """Main script to calculate Yields (TIRs) and generate yield curves for bond portfolios."""
     puentenet_fetcher = PuenteNetFetcher()
     all_data912_instruments = get_all_data912_instruments()
 
