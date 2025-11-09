@@ -1,6 +1,6 @@
-from datetime import date
-from decimal import Decimal, getcontext, InvalidOperation, DivisionByZero
 import logging
+from datetime import date
+from decimal import Decimal, DivisionByZero, InvalidOperation, getcontext
 
 getcontext().prec = 50
 
@@ -101,19 +101,19 @@ def calculate_tir(
 
 
 def convert_tirea_to_tem(tirea_anual: Decimal) -> Decimal:
-    if tirea_anual <= Decimal("-1"):
-        return Decimal("-1")
+    if tirea_anual <= Decimal(-1):
+        return Decimal(-1)
 
-    exponent_monthly = Decimal("1") / Decimal("12")
-    tem = (Decimal("1") + tirea_anual) ** exponent_monthly - Decimal("1")
+    exponent_monthly = Decimal(1) / Decimal(12)
+    tem = (Decimal(1) + tirea_anual) ** exponent_monthly - Decimal(1)
     return tem
 
 
 def convert_tem_to_tea(tem: Decimal) -> Decimal:
-    tea = (Decimal("1") + tem) ** Decimal("12") - Decimal("1")
+    tea = (Decimal(1) + tem) ** Decimal(12) - Decimal(1)
     return tea
 
 
 def convert_tem_to_tna(tem: Decimal) -> Decimal:
-    tna = tem * Decimal("12")
+    tna = tem * Decimal(12)
     return tna

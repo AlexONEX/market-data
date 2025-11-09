@@ -158,7 +158,7 @@ class FinancialDataService:
         try:
             import requests
 
-            url = "https://financialmodelingprep.com/api/v4/stock_peers"
+            url = "https://financialmodelingprep.com/stable/stock-peers"
             params = {"symbol": ticker, "apikey": self.fmp_api_key}
 
             response = requests.get(url, params=params, timeout=5)

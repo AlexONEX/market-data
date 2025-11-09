@@ -1,10 +1,11 @@
-import matplotlib.pyplot as plt
-import pandas as pd
-import os
 import logging
-import numpy as np
+import os
 from datetime import datetime
 from decimal import Decimal
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 from matplotlib.ticker import (
     FormatStrFormatter,
 )
@@ -95,7 +96,7 @@ def plot_tem_vs_days_to_maturity(
 
                 if delta.days > 0:
                     days_to_maturity.append(delta.days)
-                    tem_values.append(float(tem * Decimal("100")))
+                    tem_values.append(float(tem * Decimal(100)))
                     labels.append(ticker)
                 else:
                     logger.warning(

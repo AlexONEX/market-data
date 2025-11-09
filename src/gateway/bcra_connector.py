@@ -1,5 +1,6 @@
-import requests
 import logging
+
+import requests
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -29,8 +30,10 @@ class BCRAAPIConnector:
             data = response.json()
             return data.get("results", [])
         except requests.exceptions.RequestException:
-            logging.error("Error when connecting to BCRA API")
+            logging.exception("Error when connecting to BCRA API")
             return None
         except ValueError as e:
-            logging.error(f"Error when parsing api response for ID {variable_id}: {e}")
+            logging.exception(
+                f"Error when parsing api response for ID {variable_id}: {e}"
+            )
             return None

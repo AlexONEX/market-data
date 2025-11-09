@@ -27,9 +27,8 @@ class SheetsWriter:
             if spreadsheet_id:
                 logger.info(f"Opening existing spreadsheet (ID: {spreadsheet_id})")
                 return self.gc.open_by_key(spreadsheet_id)
-            else:
-                logger.info(f"Creating new spreadsheet: {spreadsheet_name}")
-                return self.gc.create(spreadsheet_name)
+            logger.info(f"Creating new spreadsheet: {spreadsheet_name}")
+            return self.gc.create(spreadsheet_name)
         except Exception as e:
             logger.error(f"Failed to get/create spreadsheet: {e}")
             return None
@@ -135,9 +134,8 @@ class SheetsWriter:
                 worksheet.append_rows(all_data, table_range="A1")
                 logger.info(f"Written {len(sections)} sections to '{sheet_name}'")
                 return True
-            else:
-                logger.warning(f"No data to write to '{sheet_name}'")
-                return False
+            logger.warning(f"No data to write to '{sheet_name}'")
+            return False
 
         except Exception as e:
             logger.error(f"Failed to write sections: {e}")

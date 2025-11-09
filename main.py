@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 
-import os
 import csv
 import logging
+import os
 from datetime import date
 from decimal import Decimal
 
+import matplotlib.pyplot as plt
 import numpy as np
 import requests
 from requests.exceptions import RequestException
-import matplotlib.pyplot as plt
+from src.gateway.puentenet_fetcher import PuenteNetFetcher
 
 from src.domain.financial_math import calculate_tir
-from src.gateway.puentenet_fetcher import PuenteNetFetcher
 
 # Minimal logging - only errors and critical info
 logging.basicConfig(level=logging.ERROR)
@@ -288,7 +288,7 @@ def main():
                 maturity_date = cashflow[-1][0] if cashflow else None
 
                 if tir is not None and maturity_date is not None:
-                    tir_percentage = tir * Decimal("100")
+                    tir_percentage = tir * Decimal(100)
                     writer.writerow(
                         [
                             ticker_data912,

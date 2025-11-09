@@ -61,37 +61,35 @@ class MetricExtractor:
         return None
 
     def _get_nested_value(self, key_path: str) -> Any:
-        """Get value from nested dictionary using dot notation.
-
-        Examples:
-            "overview.name" → data["overview"]["name"]
-            "income_statement.Total Revenue" → data["income_statement"]["Total Revenue"]
-
-        Args:
-            key_path: Dot-separated path to the value
-
-        Returns:
-            Value or None if not found
+        """
+        Get value from data structure.
+        - For "overview.marketCap", gets data['overview']['marketCap']
+        - For "income_statement.revenue", finds the 'revenue' row and gets the first value.
         """
         parts = key_path.split(".")
-        current = self.data
+        if len(parts) != 2:
+            return None
 
-        for part in parts:
-            if isinstance(current, dict):
-                current = current.get(part)
-            elif isinstance(current, pd.DataFrame):
-                try:
-                    current = current.loc[part]
-                except KeyError:
-                    return None
-            else:
-                return None
+        section_name, metric_key = parts
+        section_data = self.data.get(section_name)
 
-            if current is None:
-                return None
+        if section_data is None:
+            return None
 
-        return current
+        # Handle the overview dictionary
+        if isinstance(section_data, dict):
+            return section_data.get(metric_key)
 
+        # Handle the financial DataFrames (metrics are in the index)
+        elif isinstance(section_data, pd.DataFrame):
+            if metric_key in section_data.index:
+                series = section_data.loc[metric_key]
+                if not series.empty:
+                    # Return the first value (most recent period)
+                    return series.iloc[0]
+            return None
+
+        return None
     def _format_value(self, value: Any, metric_type: str) -> str:
         if value is None or (isinstance(value, float) and pd.isna(value)):
             return "N/A"
@@ -101,17 +99,15 @@ class MetricExtractor:
                 if isinstance(value, (int, float)):
                     if abs(value) >= 1_000_000_000:
                         return f"${value / 1_000_000_000:.2f}B"
-                    elif abs(value) >= 1_000_000:
+                    if abs(value) >= 1_000_000:
                         return f"${value / 1_000_000:.2f}M"
-                    else:
-                        return f"${value:,.0f}"
+                    return f"${value:,.0f}"
 
             elif metric_type == "percentage":
                 if isinstance(value, (int, float)):
                     if abs(value) <= 1:
                         return f"{value * 100:.2f}%"
-                    else:
-                        return f"{value:.2f}%"
+                    return f"{value:.2f}%"
 
             elif metric_type == "ratio":
                 if isinstance(value, (int, float)):

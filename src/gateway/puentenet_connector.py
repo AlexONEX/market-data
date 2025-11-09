@@ -1,9 +1,9 @@
-import logging
 import csv
+import logging
 import os
 from datetime import datetime
 from decimal import Decimal
-from typing import Any, Dict, List
+from typing import Any
 
 import requests
 from requests.exceptions import RequestException
@@ -18,7 +18,7 @@ class PuenteNetFetcher:
     CASHFLOW_CSV = "src/data/cashflows.csv"
 
     def __init__(self):
-        self._cashflow_cache: Dict[str, List[Dict[str, Any]]] = {}
+        self._cashflow_cache: dict[str, list[dict[str, Any]]] = {}
         self._load_cashflows_from_csv()
 
     def _load_cashflows_from_csv(self):
@@ -26,7 +26,7 @@ class PuenteNetFetcher:
         if not os.path.exists(self.CASHFLOW_CSV):
             return
 
-        with open(self.CASHFLOW_CSV, mode="r", newline="") as file:
+        with open(self.CASHFLOW_CSV, newline="") as file:
             reader = csv.DictReader(file)
             for row in reader:
                 ticker = row["Ticker"]
@@ -49,7 +49,7 @@ class PuenteNetFetcher:
             f"Loaded {len(self._cashflow_cache)} tickers with cash flows from {self.CASHFLOW_CSV}"
         )
 
-    def _save_cashflows_to_csv(self, ticker: str, cashflows: List[Dict[str, Any]]):
+    def _save_cashflows_to_csv(self, ticker: str, cashflows: list[dict[str, Any]]):
         file_exists = os.path.exists(self.CASHFLOW_CSV)
         is_empty = not file_exists or os.stat(self.CASHFLOW_CSV).st_size == 0
 
@@ -80,7 +80,7 @@ class PuenteNetFetcher:
 
     def get_cashflows(
         self, ticker: str, nominal_value: int = 100
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         if ticker in self._cashflow_cache:
             logging.info(f"Cash flows for {ticker} found in cache/CSV.")
             return self._cashflow_cache[ticker]
@@ -113,15 +113,17 @@ class PuenteNetFetcher:
             logging.info(f"Cash flow data for {ticker} obtained from PuenteNet.")
             return response.json()
         except RequestException as e:
-            logging.error(f"Error fetching cash flows for {ticker} from PuenteNet: {e}")
+            logging.exception(
+                f"Error fetching cash flows for {ticker} from PuenteNet: {e}"
+            )
             return None
         except ValueError:
-            logging.error(
+            logging.exception(
                 f"Error decoding PuenteNet JSON for {ticker}. Response: {response.text if response else 'No response'}"
             )
             return None
 
-    def _parse_cashflows(self, raw_data: Any) -> List[Dict[str, Any]]:
+    def _parse_cashflows(self, raw_data: Any) -> list[dict[str, Any]]:
         if not raw_data or not isinstance(raw_data, dict):
             logging.warning("Invalid or empty raw cash flow data.")
             return []

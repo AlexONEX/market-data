@@ -14,18 +14,20 @@ import sys
 from pathlib import Path
 
 import pandas as pd
+from dotenv import load_dotenv
 
 from src.services.financial_data_service import FinancialDataService
 from src.utils.report_formatter import ReportFormatter
 
 logging.basicConfig(
-    level=logging.WARNING,
+    level=logging.DEBUG,
     format="%(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
 
 
 def main():
+    load_dotenv()
     parser = argparse.ArgumentParser(
         description="Fetch financial data from multiple sources and save locally"
     )
@@ -75,25 +77,12 @@ def main():
         if financial_data.get("overview"):
             data_to_save["overview"] = financial_data.get("overview")
 
-        # Add income statement
-        income_stmt = financial_data.get("income_statement")
-        if isinstance(income_stmt, pd.DataFrame) and not income_stmt.empty:
-            data_to_save["income_statement"] = income_stmt.to_dict()
-
-        # Add balance sheet
-        balance_sheet = financial_data.get("balance_sheet")
-        if isinstance(balance_sheet, pd.DataFrame) and not balance_sheet.empty:
-            data_to_save["balance_sheet"] = balance_sheet.to_dict()
-
-        # Add cash flow
-        cash_flow = financial_data.get("cash_flow")
-        if isinstance(cash_flow, pd.DataFrame) and not cash_flow.empty:
-            data_to_save["cash_flow"] = cash_flow.to_dict()
-
-        # Add ratios
-        ratios = financial_data.get("ratios")
-        if isinstance(ratios, pd.DataFrame) and not ratios.empty:
-            data_to_save["ratios"] = ratios.to_dict()
+        # Add financial tables
+        for table_name in ["income_statement", "balance_sheet", "cash_flow", "ratios", "statistics", "dividends"]:
+            table_data = financial_data.get(table_name)
+            if isinstance(table_data, pd.DataFrame) and not table_data.empty:
+                # Convert DataFrame to a list of records for JSON serialization
+                data_to_save[table_name] = table_data.to_dict(orient="records")
 
         # Add peers
         peers = financial_data.get("peers")
