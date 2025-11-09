@@ -141,7 +141,7 @@ class MetricExtractor:
         for metric_name, metric_data in metrics.items():
             value = metric_data["value"]
             metric_type = metric_data["type"]
-            formatted = self.format_value(value, metric_type)
+            formatted = self._format_value(value, metric_type)
 
             rows.append(
                 {
