@@ -1,0 +1,66 @@
+name: Generate Quarterly Financial Report
+
+on:
+  schedule:
+    # Run on the 15th of each month at 6 AM UTC
+    - cron: '0 6 15 * *'
+
+  workflow_dispatch:
+    inputs:
+      ticker:
+        description: 'Stock ticker symbol (e.g., VIST)'
+        required: true
+        default: 'VIST'
+      sheet_id:
+        description: 'Google Sheet ID (leave empty to create new)'
+        required: false
+      no_sheets:
+        description: 'Skip Google Sheets upload'
+        required: false
+        type: boolean
+
+jobs:
+  generate-quarterly-report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install beautifulsoup4 requests lxml gspread
+
+      - name: Generate quarterly report
+        env:
+          TICKER: ${{ github.event.inputs.ticker || 'VIST' }}
+          PERIOD: 'quarterly'
+          SHEET_ID: ${{ github.event.inputs.sheet_id }}
+          NO_SHEETS: ${{ github.event.inputs.no_sheets || false }}
+          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+        run: |
+          NO_SHEETS_FLAG=""
+          [ "$NO_SHEETS" = "true" ] && NO_SHEETS_FLAG="--no-sheets"
+
+          if [ -z "$SHEET_ID" ]; then
+            python -m src.cli.financial_report_cli --ticker "$TICKER" --period "$PERIOD" $NO_SHEETS_FLAG
+          else
+            python -m src.cli.financial_report_cli --ticker "$TICKER" --period "$PERIOD" --sheet-id "$SHEET_ID" $NO_SHEETS_FLAG
+          fi
+
+      - name: Upload report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quarterly-report-${{ github.event.inputs.ticker || 'VIST' }}
+          path: reports/
+          retention-days: 30
