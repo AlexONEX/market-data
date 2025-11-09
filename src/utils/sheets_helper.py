@@ -89,7 +89,7 @@ class SheetsWriter:
             )
 
             # Convert DataFrame to list of lists for gspread
-            data = [df.columns.tolist()] + df.to_numpy().tolist()
+            data = [df.columns.tolist(), *df.to_numpy().tolist()]
 
             # Write data in batches if large
             if len(data) > BATCH_WRITE_THRESHOLD:
@@ -185,8 +185,8 @@ class SheetsWriter:
             data = []
             for key, value_item in metadata.items():
                 if isinstance(value_item, (list, dict)):
-                    value_item = str(value_item)
-                data.append([str(key), str(value_item)])
+                processed_value = str(value_item)
+                data.append([str(key), processed_value])
 
             worksheet.append_rows(data, table_range="A1")
             logger.info("Written metadata to '%s'", sheet_name)
