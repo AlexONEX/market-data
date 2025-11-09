@@ -10,7 +10,6 @@ import pandas as pd
 
 from src.domain.metric_templates import (
     MetricDefinition,
-    SectorTemplate,
     get_template_for_sector,
 )
 
