@@ -78,7 +78,14 @@ def main():
             data_to_save["overview"] = financial_data.get("overview")
 
         # Add financial tables
-        for table_name in ["income_statement", "balance_sheet", "cash_flow", "ratios", "statistics", "dividends"]:
+        for table_name in [
+            "income_statement",
+            "balance_sheet",
+            "cash_flow",
+            "ratios",
+            "statistics",
+            "dividends",
+        ]:
             table_data = financial_data.get(table_name)
             if isinstance(table_data, pd.DataFrame) and not table_data.empty:
                 # Convert DataFrame to a list of records for JSON serialization

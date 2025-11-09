@@ -50,19 +50,19 @@ class StockanalysisConnector:
             tables = pd.read_html(url, storage_options=self.HEADERS)
             if not tables:
                 return None
-            
+
             df = tables[0].copy()
 
             # Flatten MultiIndex columns if they exist by taking the first level
             if isinstance(df.columns, pd.MultiIndex):
                 df.columns = df.columns.get_level_values(0)
-            
+
             # Set the first column as the index
             df = df.set_index(df.columns[0])
-            
+
             # Clean the index names (which are the metric names)
             df.index = [clean_column_name(name) for name in df.index]
-            
+
             return df
         except Exception as e:
             logger.debug(f"Failed to get or clean table from {url}: {e}")
@@ -72,6 +72,7 @@ class StockanalysisConnector:
         url = f"{self.base_url}/"
         try:
             import requests
+
             response = requests.get(url, headers=self.HEADERS, timeout=10)
             response.raise_for_status()
             soup = BeautifulSoup(response.content, "html.parser")

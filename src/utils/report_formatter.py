@@ -21,7 +21,9 @@ class ReportFormatter:
         df = self.financial_data.get(sheet_name)
 
         if df is None or not isinstance(df, pd.DataFrame) or df.empty:
-            return pd.DataFrame({"Error": [f"No {sheet_name.replace('_', ' ')} data available"]})
+            return pd.DataFrame(
+                {"Error": [f"No {sheet_name.replace('_', ' ')} data available"]}
+            )
 
         # The first column is the index, so we reset it to make it a regular column
         return df.reset_index().rename(columns={"index": "Metric"})
