@@ -92,7 +92,7 @@ class MetricExtractor:
 
         return current
 
-    def format_value(self, value: Any, metric_type: str) -> str:
+    def _format_value(self, value: Any, metric_type: str) -> str:
         if value is None or (isinstance(value, float) and pd.isna(value)):
             return "N/A"
 
