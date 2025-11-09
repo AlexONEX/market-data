@@ -9,7 +9,7 @@ import requests
 from requests.exceptions import RequestException
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)  # Revert to INFO level
+logger.setLevel(logging.INFO)
 
 
 class PuenteNetFetcher:
@@ -59,7 +59,6 @@ class PuenteNetFetcher:
         """
         Guarda los flujos de fondos de un ticker al archivo CSV.
         """
-        # Abrir en modo append, crear encabezado si el archivo no existe o está vacío
         file_exists = os.path.exists(self.CASHFLOW_CSV)
         is_empty = not file_exists or os.stat(self.CASHFLOW_CSV).st_size == 0
 
