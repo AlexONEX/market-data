@@ -1,5 +1,9 @@
+import logging
 import os
+
 from dotenv import load_dotenv
+
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -12,7 +16,8 @@ class Settings:
 settings = Settings()
 
 if __name__ == "__main__":
-    print(f"PPI Public Key: {settings.PPI_PUBLIC_KEY}")
-    print(
-        f"PPI Private Key: {'*' * len(settings.PPI_PRIVATE_KEY) if settings.PPI_PRIVATE_KEY else 'Not set'}"
+    logger.info("PPI Public Key: %s", settings.PPI_PUBLIC_KEY)
+    logger.info(
+        "PPI Private Key: %s",
+        "*" * len(settings.PPI_PRIVATE_KEY) if settings.PPI_PRIVATE_KEY else "Not set",
     )

@@ -1,6 +1,6 @@
-from datetime import date
-from decimal import Decimal, getcontext, InvalidOperation, DivisionByZero
 import logging
+from datetime import date
+from decimal import Decimal, DivisionByZero, InvalidOperation, getcontext
 
 getcontext().prec = 50
 
@@ -15,7 +15,7 @@ def calculate_tir(
     TIR using Newton-Raphson (XIRR).
     """
     if not cashflows or price <= 0:
-        logger.debug(f"calculate_tir: Cashflows vacíos o precio <= 0. Price: {price}")
+        logger.debug("calculate_tir: Cashflows vacíos o precio <= 0. Price: %s", price)
         return None
 
     future_cashflows = []
@@ -45,7 +45,10 @@ def calculate_tir(
             days = Decimal((dates[i] - settlement_date).days)
             exponent = days / Decimal("365.0")
             try:
-                total_npv += amounts[i] / ((Decimal("1.0") + rate) ** exponent)
+                denominator = Decimal("1.0") + rate
+                if denominator == 0:
+                    return Decimal("NaN")
+                total_npv += amounts[i] / (denominator**exponent)
             except InvalidOperation:
                 return Decimal("NaN")
         return total_npv - price
@@ -74,7 +77,7 @@ def calculate_tir(
         d_npv_val = d_npv(guess)
 
         logger.debug(
-            f"Iter {i}: Guess={guess:.6f}, NPV={npv_val:.6f}, dNPV={d_npv_val:.6f}"
+            "Iter %d: Guess=%.6f, NPV=%.6f, dNPV=%.6f", i, guess, npv_val, d_npv_val
         )
 
         if npv_val.is_nan() or d_npv_val.is_nan():
@@ -83,7 +86,9 @@ def calculate_tir(
 
         if abs(npv_val) < Decimal("1e-9"):
             logger.debug(
-                f"calculate_tir: Convergencia alcanzada en {i} iteraciones. TIR={guess:.6f}"
+                "calculate_tir: Convergencia alcanzada en %d iteraciones. TIR=%.6f",
+                i,
+                guess,
             )
             return guess
 
@@ -101,19 +106,16 @@ def calculate_tir(
 
 
 def convert_tirea_to_tem(tirea_anual: Decimal) -> Decimal:
-    if tirea_anual <= Decimal("-1"):
-        return Decimal("-1")
+    if tirea_anual <= Decimal(-1):
+        return Decimal(-1)
 
-    exponent_monthly = Decimal("1") / Decimal("12")
-    tem = (Decimal("1") + tirea_anual) ** exponent_monthly - Decimal("1")
-    return tem
+    exponent_monthly = Decimal(1) / Decimal(12)
+    return (Decimal(1) + tirea_anual) ** exponent_monthly - Decimal(1)
 
 
 def convert_tem_to_tea(tem: Decimal) -> Decimal:
-    tea = (Decimal("1") + tem) ** Decimal("12") - Decimal("1")
-    return tea
+    return (Decimal(1) + tem) ** Decimal(12) - Decimal(1)
 
 
 def convert_tem_to_tna(tem: Decimal) -> Decimal:
-    tna = tem * Decimal("12")
-    return tna
+    return tem * Decimal(12)

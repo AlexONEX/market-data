@@ -1,9 +1,9 @@
-import logging
 import csv
-import os
-from datetime import datetime
+import logging
+from datetime import UTC, datetime
 from decimal import Decimal
-from typing import Any, Dict, List
+from pathlib import Path
+from typing import Any
 
 import requests
 from requests.exceptions import RequestException
@@ -13,26 +13,28 @@ logger.setLevel(logging.INFO)
 
 
 class PuenteNetFetcher:
-    """Fetches cash flows from PuenteNet and persists/loads them from a CSV."""
-
     BASE_URL = "https://www.puentenet.com/"
     CASHFLOW_ENDPOINT = "herramientas/flujo-de-fondos/calcular"
-    CASHFLOW_CSV = "src/data/cashflows.csv"
+    CASHFLOW_CSV = Path("src/data/cashflows.csv")
 
     def __init__(self):
-        self._cashflow_cache: Dict[str, List[Dict[str, Any]]] = {}
+        self._cashflow_cache: dict[str, list[dict[str, Any]]] = {}
         self._load_cashflows_from_csv()
 
     def _load_cashflows_from_csv(self):
         """Loads cash flows from the CSV file into the internal cache."""
-        if not os.path.exists(self.CASHFLOW_CSV):
+        if not self.CASHFLOW_CSV.exists():
             return
 
-        with open(self.CASHFLOW_CSV, mode="r", newline="") as file:
+        with self.CASHFLOW_CSV.open(newline="") as file:
             reader = csv.DictReader(file)
             for row in reader:
                 ticker = row["Ticker"]
-                payment_date = datetime.strptime(row["PaymentDate"], "%Y-%m-%d").date()
+                payment_date = (
+                    datetime.strptime(row["PaymentDate"], "%Y-%m-%d")
+                    .replace(tzinfo=UTC)
+                    .date()
+                )
                 total_payment = Decimal(row["TotalPayment"])
                 amortization = Decimal(row["Amortization"])
                 interest = Decimal(row["Interest"])
@@ -47,16 +49,17 @@ class PuenteNetFetcher:
                         "interest": interest,
                     }
                 )
-        logging.info(
-            f"Loaded {len(self._cashflow_cache)} tickers with cash flows from {self.CASHFLOW_CSV}"
+        logger.info(
+            "Loaded %d tickers with cash flows from %s",
+            len(self._cashflow_cache),
+            self.CASHFLOW_CSV,
         )
 
-    def _save_cashflows_to_csv(self, ticker: str, cashflows: List[Dict[str, Any]]):
-        """Saves cash flows for a given ticker to the CSV file."""
-        file_exists = os.path.exists(self.CASHFLOW_CSV)
-        is_empty = not file_exists or os.stat(self.CASHFLOW_CSV).st_size == 0
+    def _save_cashflows_to_csv(self, ticker: str, cashflows: list[dict[str, Any]]):
+        file_exists = self.CASHFLOW_CSV.exists()
+        is_empty = not file_exists or self.CASHFLOW_CSV.stat().st_size == 0
 
-        with open(self.CASHFLOW_CSV, mode="a", newline="") as file:
+        with self.CASHFLOW_CSV.open(mode="a", newline="") as file:
             writer = csv.writer(file)
             if is_empty:
                 writer.writerow(
@@ -79,23 +82,23 @@ class PuenteNetFetcher:
                         str(cf["interest"]),
                     ]
                 )
-        logging.info(f"Cash flows for {ticker} saved to {self.CASHFLOW_CSV}")
+        logger.info("Cash flows for %s saved to %s", ticker, self.CASHFLOW_CSV)
 
     def get_cashflows(
         self, ticker: str, nominal_value: int = 100
-    ) -> List[Dict[str, Any]]:
-        """Retrieves cash flows for a given ticker, first from cache/CSV, then from PuenteNet if not found."""
+    ) -> list[dict[str, Any]]:
         if ticker in self._cashflow_cache:
-            logging.info(f"Cash flows for {ticker} found in cache/CSV.")
+            logger.info("Cash flows for %s found in cache/CSV.", ticker)
             return self._cashflow_cache[ticker]
 
-        logging.info(
-            f"Cash flows for {ticker} not found in cache/CSV. Attempting to fetch from PuenteNet..."
+        logger.info(
+            "Cash flows for %s not found in cache/CSV. Attempting to fetch from PuenteNet...",
+            ticker,
         )
 
         raw_data = self._fetch_from_puentenet(ticker, nominal_value)
         if raw_data:
-            parsed_cashflows = self.parse_cashflows(raw_data)
+            parsed_cashflows = self._parse_cashflows(raw_data)
             if parsed_cashflows:
                 self._cashflow_cache[ticker] = parsed_cashflows
                 self._save_cashflows_to_csv(ticker, parsed_cashflows)
@@ -103,7 +106,6 @@ class PuenteNetFetcher:
         return []
 
     def _fetch_from_puentenet(self, ticker: str, nominal_value: int = 100) -> Any:
-        """Fetches cash flows for a given ticker from the PuenteNet API."""
         url = f"{self.BASE_URL}{self.CASHFLOW_ENDPOINT}"
         payload = {f"BONO_{ticker}": str(nominal_value)}
         headers = {
@@ -115,31 +117,28 @@ class PuenteNetFetcher:
         try:
             response = requests.post(url, json=payload, headers=headers, timeout=15)
             response.raise_for_status()
-            logging.info(
-                f"Cash flow data for {ticker} obtained from PuenteNet."
-            )
+            logger.info("Cash flow data for %s obtained from PuenteNet.", ticker)
             return response.json()
-        except RequestException as e:
-            logging.error(
-                f"Error fetching cash flows for {ticker} from PuenteNet: {e}"
-            )
+        except RequestException:
+            logger.exception("Error fetching cash flows for %s from PuenteNet", ticker)
             return None
         except ValueError:
-            logging.error(
-                f"Error decoding PuenteNet JSON for {ticker}. Response: {response.text if response else 'No response'}"
+            logger.exception(
+                "Error decoding PuenteNet JSON for %s. Response: %s",
+                ticker,
+                response.text if response else "No response",  # Q000
             )
             return None
 
-    def parse_cashflows(self, raw_data: Any) -> List[Dict[str, Any]]:
-        """Parses raw cash flow data from PuenteNet."""
+    def _parse_cashflows(self, raw_data: Any) -> list[dict[str, Any]]:
         if not raw_data or not isinstance(raw_data, dict):
-            logging.warning("Invalid or empty raw cash flow data.")
+            logger.warning("Invalid or empty raw cash flow data.")
             return []
 
         errors = raw_data.get("errores")
         if errors and isinstance(errors, list) and len(errors) > 0:
             for error in errors:
-                logging.warning(f"PuenteNet reported an error: {error}")
+                logger.warning("PuenteNet reported an error: %s", error)
             return []
 
         target_cashflows = None
@@ -151,15 +150,13 @@ class PuenteNetFetcher:
                 if target_cashflows:
                     break
             if not target_cashflows and cashflows_by_currency:
-                first_currency_key = list(cashflows_by_currency.keys())[0]
+                first_currency_key = next(iter(cashflows_by_currency.keys()))
                 target_cashflows = cashflows_by_currency.get(first_currency_key)
 
-        if not target_cashflows:
-            target_cashflows = raw_data.get("flujosMapDTO", [])
-
         if not target_cashflows or not isinstance(target_cashflows, list):
-            logging.warning(
-                f"PuenteNet response structure does not contain expected cash flows. Response: {raw_data}"
+            logger.warning(
+                "PuenteNet response structure does not contain expected cash flows. Response: %s",
+                raw_data,
             )
             return []
 
@@ -168,10 +165,12 @@ class PuenteNetFetcher:
             try:
                 payment_date_timestamp = cf.get("fechaPago")
                 if payment_date_timestamp is None:
-                    logging.warning(f"Cash flow without payment date: {cf}")
+                    logger.warning("Cash flow without payment date: %s", cf)
                     continue
 
-                payment_date = datetime.fromtimestamp(payment_date_timestamp / 1000).date()
+                payment_date = datetime.fromtimestamp(
+                    payment_date_timestamp / 1000, tz=UTC
+                ).date()
                 amortization_amount = Decimal(str(cf.get("importeAmortizacion", "0")))
                 interest_amount = Decimal(str(cf.get("importeRenta", "0")))
                 total_amount = Decimal(str(cf.get("importe", "0")))
@@ -186,9 +185,7 @@ class PuenteNetFetcher:
                         }
                     )
             except (ValueError, TypeError) as e:
-                logging.warning(
-                    f"Error parsing a cash flow: {cf}. Error: {e}"
-                )
+                logger.warning("Error parsing a cash flow: %s. Error: %s", cf, e)
                 continue
 
         parsed.sort(key=lambda x: x["date"])

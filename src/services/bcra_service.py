@@ -1,7 +1,7 @@
 import logging
 
 from src.gateway.bcra_connector import BCRAAPIConnector
-from src.utils.plotter import plot_time_series
+from src.utils.plotter import PlotConfig, plot_time_series
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -51,7 +51,7 @@ class BCRAService:
             40: "Índice para Contratos de Locación (ICL-Ley 27.551, con dos decimales, base 30.6.20=1)",
             41: "Tasas de interés de las operaciones de pase pasivas para el BCRA, a 1 día de plazo (en % e.a.)",
             42: "Pases pasivos para el BCRA - Saldos (en millones de pesos)",
-            43: "Tasa de interés para uso de la Justicia – Comunicado P 14290 | Base 01/04/1991 (en %)",
+            43: "Tasa de interés para uso de la Justicia - Comunicado P 14290 | Base 01/04/1991 (en %)",  # RUF001
             44: "TAMAR en pesos de bancos privados (en % n.a.)",
             45: "TAMAR en pesos de bancos privados (en % e.a.)",
             46: "Total de factores de explicación de la variación de la Base Monetaria (en millones de $)",
@@ -101,7 +101,7 @@ class BCRAService:
             90: "Saldo de CEDROS con CER de los sectores público y privado no financieros (en millones de $)",
             91: "Saldo de los depósitos en pesos de los sectores público y privados no financieros más CEDROS (en millones de $)",
             92: "Saldo de BODEN de los sectores público y privado no financieros (en millones de $)",
-            93: "Saldo de los depósitos en pesos de los sectores público y privados no financieros más CEDRO más BODEN (en millones de $)",
+            93: "Saldo de los depósitos en pesos del sector público y privados no financieros más CEDRO más BODEN (en millones de $)",
             94: "Saldo de depósitos en pesos cuentas corrientes del sector privado no financiero (en millones de $)",
             95: "Saldo de depósitos en pesos en cajas de ahorro del sector privado no financiero (en millones de $)",
             96: "Saldo de depósitos en pesos a plazo no ajustables por CER/UVAs del sector privado no financiero (en millones de $)",
@@ -213,7 +213,7 @@ class BCRAService:
         if data:
             return data[0]
         logger.warning(
-            f"Could not retrieve the latest value for variable ID: {variable_id}"
+            "Could not retrieve the latest value for variable ID: %s", variable_id
         )
         return None
 
@@ -222,13 +222,16 @@ class BCRAService:
 
     def plot_bcra_series(self, variable_id: int, output_dir: str = "plots"):
         description = self.variable_descriptions.get(
-            variable_id, f"Variable ID: {variable_id}"
+            variable_id,
+            f"Variable ID: {variable_id}",  # UP031
         )
         data_results = self.get_time_series_data(variable_id)
 
         if not data_results:
             logger.warning(
-                f"No data retrieved to plot series for {description} (ID: {variable_id})."
+                "No data retrieved to plot series for %s (ID: %s).",
+                description,
+                variable_id,
             )
             return
 
@@ -250,46 +253,55 @@ class BCRAService:
             c for c in safe_filename if c.isalnum() or c in ["_", "."]
         ).replace("__", "_")
 
-        plot_time_series(
-            data_results,
-            date_col="fecha",
-            value_col="valor",
+        config = PlotConfig(
             plot_title=description,
             output_filename=safe_filename,
             y_label=y_label,
             output_dir=output_dir,
+        )
+        plot_time_series(
+            data_results,
+            date_col="fecha",
+            value_col="valor",
+            config=config,
         )
 
 
 if __name__ == "__main__":
     bcra_service = BCRAService()
 
-    print("--- Fetching and plotting Interest Rates ---")
+    logger.info("--- Fetching and plotting Interest Rates ---")
     tasas_interes_ids = [6, 34, 44, 45, 7, 35, 8, 9, 11, 12, 13, 14, 43]
     for var_id in tasas_interes_ids:
         bcra_service.plot_bcra_series(var_id)
 
-    print("\n--- Fetching and plotting Monetary Base and Deposits Variables ---")
+    logger.info("--- Fetching and plotting Monetary Base and Deposits Variables ---")
     base_monetaria_vars_ids = [15, 16, 17, 18, 19, 21, 22, 23, 24, 25]
     for var_id in base_monetaria_vars_ids:
         bcra_service.plot_bcra_series(var_id)
 
-    print("\n--- Fetching and plotting International Reserves ---")
+    logger.info("--- Fetching and plotting International Reserves ---")
     bcra_service.plot_bcra_series(1)
 
-    print("\n--- Example of fetching a principal (latest) value ---")
+    logger.info("--- Example of fetching a principal (latest) value ---")
     # Tasa de Política Monetaria (en % n.a.)
     tpm_id = 6
     latest_tpm = bcra_service.get_principal_variable_data(tpm_id)
     if latest_tpm:
-        print(
-            f"Latest {bcra_service.variable_descriptions.get(tpm_id)}: {latest_tpm.get('valor')} (Fecha: {latest_tpm.get('fecha')})"
+        logger.info(
+            "Latest %s: %s (Fecha: %s)",
+            bcra_service.variable_descriptions.get(tpm_id),
+            latest_tpm.get("valor"),
+            latest_tpm.get("fecha"),
         )
 
     # Tipo de Cambio Minorista ($ por USD)
     tc_minorista_id = 4
     latest_tc_minorista = bcra_service.get_principal_variable_data(tc_minorista_id)
     if latest_tc_minorista:
-        print(
-            f"Latest {bcra_service.variable_descriptions.get(tc_minorista_id)}: {latest_tc_minorista.get('valor')} (Fecha: {latest_tc_minorista.get('fecha')})"
+        logger.info(
+            "Latest %s: %s (Fecha: %s)",
+            bcra_service.variable_descriptions.get(tc_minorista_id),
+            latest_tc_minorista.get("valor"),
+            latest_tc_minorista.get("fecha"),
         )
