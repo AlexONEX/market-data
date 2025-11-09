@@ -1,8 +1,3 @@
-"""
-Formats extracted metrics into sheets-ready format.
-Generates organized sheets with proper structure and styling information.
-"""
-
 import logging
 from typing import Any
 
@@ -14,14 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 class ReportFormatter:
-    """Formats financial data into structured reports for Google Sheets."""
-
     def __init__(self, financial_data: dict[str, Any]):
-        """Initialize the formatter.
-
-        Args:
-            financial_data: Dictionary with financial data from multi-source fetcher
-        """
         self.financial_data = financial_data
         self.ticker = financial_data.get("ticker", "")
         self.period = financial_data.get("period", "quarterly")
@@ -30,11 +18,6 @@ class ReportFormatter:
         self.extractor = MetricExtractor(financial_data)
 
     def generate_overview_sheet(self) -> pd.DataFrame:
-        """Generate Overview sheet with company info and key metrics.
-
-        Returns:
-            DataFrame with overview information
-        """
         overview = self.financial_data.get("overview", {})
 
         rows = [
@@ -60,11 +43,6 @@ class ReportFormatter:
         return pd.DataFrame(rows)
 
     def generate_income_statement_sheet(self) -> pd.DataFrame:
-        """Generate Income Statement sheet with key profitability metrics.
-
-        Returns:
-            DataFrame with income statement data
-        """
         income_stmt = self.financial_data.get("income_statement")
 
         if income_stmt is None or income_stmt.empty:
@@ -89,11 +67,6 @@ class ReportFormatter:
         return filtered_data.reset_index().rename(columns={"index": "Metric"})
 
     def generate_balance_sheet_sheet(self) -> pd.DataFrame:
-        """Generate Balance Sheet sheet with key financial position metrics.
-
-        Returns:
-            DataFrame with balance sheet data
-        """
         balance_sheet = self.financial_data.get("balance_sheet")
 
         if balance_sheet is None or balance_sheet.empty:
@@ -120,17 +93,11 @@ class ReportFormatter:
         return filtered_data.reset_index().rename(columns={"index": "Metric"})
 
     def generate_cash_flow_sheet(self) -> pd.DataFrame:
-        """Generate Cash Flow sheet with cash flow metrics.
-
-        Returns:
-            DataFrame with cash flow data
-        """
         cash_flow = self.financial_data.get("cash_flow")
 
         if cash_flow is None or cash_flow.empty:
             return pd.DataFrame({"Error": ["No cash flow data available"]})
 
-        # Select key metrics
         key_metrics = [
             "Operating Cash Flow",
             "Investing Cash Flow",
@@ -147,11 +114,6 @@ class ReportFormatter:
         return filtered_data.reset_index().rename(columns={"index": "Metric"})
 
     def generate_metrics_sheet(self) -> pd.DataFrame:
-        """Generate Metrics sheet using template-based extraction.
-
-        Returns:
-            DataFrame with key metrics organized by template
-        """
         all_metrics = self.extractor.extract_all_categories()
 
         rows = []
@@ -178,11 +140,6 @@ class ReportFormatter:
             return pd.DataFrame({"Error": ["No metrics extracted"]})
 
     def generate_all_sheets(self) -> dict[str, pd.DataFrame]:
-        """Generate all sheets at once.
-
-        Returns:
-            Dictionary of {sheet_name: DataFrame}
-        """
         sheets = {
             "Overview": self.generate_overview_sheet(),
             "Income Statement": self.generate_income_statement_sheet(),
@@ -193,19 +150,7 @@ class ReportFormatter:
 
         return sheets
 
-    # ========================================================================
-    # FORMATTING HELPERS
-    # ========================================================================
-
     def _format_currency(self, value: Any) -> str:
-        """Format value as currency.
-
-        Args:
-            value: Value to format
-
-        Returns:
-            Formatted currency string
-        """
         if value is None or (isinstance(value, float) and pd.isna(value)):
             return "N/A"
 
@@ -223,14 +168,6 @@ class ReportFormatter:
             return str(value)
 
     def _format_percentage(self, value: Any) -> str:
-        """Format value as percentage.
-
-        Args:
-            value: Value to format (0-1 or 0-100 scale)
-
-        Returns:
-            Formatted percentage string
-        """
         if value is None or (isinstance(value, float) and pd.isna(value)):
             return "N/A"
 
@@ -244,14 +181,6 @@ class ReportFormatter:
             return str(value)
 
     def _format_number(self, value: Any) -> str:
-        """Format value as regular number.
-
-        Args:
-            value: Value to format
-
-        Returns:
-            Formatted number string
-        """
         if value is None or (isinstance(value, float) and pd.isna(value)):
             return "N/A"
 

@@ -13,8 +13,6 @@ logger.setLevel(logging.INFO)
 
 
 class PuenteNetFetcher:
-    """Fetches cash flows from PuenteNet and persists/loads them from a CSV."""
-
     BASE_URL = "https://www.puentenet.com/"
     CASHFLOW_ENDPOINT = "herramientas/flujo-de-fondos/calcular"
     CASHFLOW_CSV = "src/data/cashflows.csv"
@@ -52,7 +50,6 @@ class PuenteNetFetcher:
         )
 
     def _save_cashflows_to_csv(self, ticker: str, cashflows: List[Dict[str, Any]]):
-        """Saves cash flows for a given ticker to the CSV file."""
         file_exists = os.path.exists(self.CASHFLOW_CSV)
         is_empty = not file_exists or os.stat(self.CASHFLOW_CSV).st_size == 0
 
@@ -84,7 +81,6 @@ class PuenteNetFetcher:
     def get_cashflows(
         self, ticker: str, nominal_value: int = 100
     ) -> List[Dict[str, Any]]:
-        """Retrieves cash flows for a given ticker, first from cache/CSV, then from PuenteNet if not found."""
         if ticker in self._cashflow_cache:
             logging.info(f"Cash flows for {ticker} found in cache/CSV.")
             return self._cashflow_cache[ticker]
@@ -103,7 +99,6 @@ class PuenteNetFetcher:
         return []
 
     def _fetch_from_puentenet(self, ticker: str, nominal_value: int = 100) -> Any:
-        """Fetches cash flows for a given ticker from the PuenteNet API."""
         url = f"{self.BASE_URL}{self.CASHFLOW_ENDPOINT}"
         payload = {f"BONO_{ticker}": str(nominal_value)}
         headers = {
@@ -127,7 +122,6 @@ class PuenteNetFetcher:
             return None
 
     def parse_cashflows(self, raw_data: Any) -> List[Dict[str, Any]]:
-        """Parses raw cash flow data from PuenteNet."""
         if not raw_data or not isinstance(raw_data, dict):
             logging.warning("Invalid or empty raw cash flow data.")
             return []

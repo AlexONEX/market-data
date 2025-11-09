@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """
 Fetch financial data from multiple sources and save to local JSON + formatted sheets.
-Uses: stockanalysis.com → yfinance → FMP (peers)
-
 Usage:
     python3 fetch_financial_data.py --ticker VIST --period quarterly
     python3 fetch_financial_data.py --ticker AAPL --period annual --fmp-key YOUR_KEY

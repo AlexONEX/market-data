@@ -4,7 +4,6 @@ Defines which metrics to extract and how to organize them for each type of compa
 """
 
 from dataclasses import dataclass
-from typing import Optional
 
 # ============================================================================
 # METRIC DEFINITIONS

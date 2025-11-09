@@ -1,7 +1,3 @@
-"""
-Helper functions for writing data to Google Sheets.
-"""
-
 import logging
 from typing import Any
 
@@ -12,14 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 class SheetsWriter:
-    """Helper class for writing data to Google Sheets."""
-
     def __init__(self, credentials_path: str):
-        """Initialize the Sheets writer.
-
-        Args:
-            credentials_path: Path to Google Sheets API credentials JSON file
-        """
         try:
             self.gc = gspread.service_account(filename=credentials_path)
             logger.info("✓ Connected to Google Sheets API")
@@ -30,15 +19,6 @@ class SheetsWriter:
     def get_or_create_spreadsheet(
         self, spreadsheet_name: str, spreadsheet_id: str | None = None
     ) -> Any:
-        """Get existing spreadsheet or create new one.
-
-        Args:
-            spreadsheet_name: Name for the spreadsheet
-            spreadsheet_id: Optional ID of existing spreadsheet
-
-        Returns:
-            gspread Spreadsheet object or None
-        """
         if not self.gc:
             logger.error("Google Sheets API not initialized")
             return None
@@ -61,17 +41,6 @@ class SheetsWriter:
         df: pd.DataFrame,
         overwrite: bool = True,
     ) -> bool:
-        """Write a pandas DataFrame to a worksheet.
-
-        Args:
-            spreadsheet: gspread Spreadsheet object
-            sheet_name: Name of the worksheet
-            df: DataFrame to write
-            overwrite: Whether to clear existing content
-
-        Returns:
-            True if successful, False otherwise
-        """
         if not spreadsheet:
             logger.error("No spreadsheet provided")
             return False
@@ -114,17 +83,6 @@ class SheetsWriter:
         sections: dict[str, pd.DataFrame],
         overwrite: bool = True,
     ) -> bool:
-        """Write multiple data sections to a worksheet with headers.
-
-        Args:
-            spreadsheet: gspread Spreadsheet object
-            sheet_name: Name of the worksheet
-            sections: Dictionary of {section_name: DataFrame}
-            overwrite: Whether to clear existing content
-
-        Returns:
-            True if successful, False otherwise
-        """
         if not spreadsheet:
             logger.error("No spreadsheet provided")
             return False
@@ -180,16 +138,6 @@ class SheetsWriter:
         sheet_name: str,
         metadata: dict[str, Any],
     ) -> bool:
-        """Write metadata key-value pairs to a worksheet.
-
-        Args:
-            spreadsheet: gspread Spreadsheet object
-            sheet_name: Name of the worksheet
-            metadata: Dictionary of metadata to write
-
-        Returns:
-            True if successful, False otherwise
-        """
         if not spreadsheet:
             logger.error("No spreadsheet provided")
             return False

@@ -1,8 +1,3 @@
-"""
-Connector for fetching financial data from stockanalysis.com.
-Scrapes income statement, balance sheet, cash flow, ratios, and overview data.
-"""
-
 import logging
 import re
 from typing import Any
@@ -15,31 +10,16 @@ logger = logging.getLogger(__name__)
 
 
 class StockanalysisConnector:
-    """Connector for extracting financial data from stockanalysis.com."""
-
     BASE_URL = "https://stockanalysis.com/stocks"
     HEADERS = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
     }
 
     def __init__(self, ticker: str):
-        """Initialize connector with a stock ticker.
-
-        Args:
-            ticker: Stock ticker symbol (e.g., 'VIST', 'AAPL')
-        """
         self.ticker = ticker.upper()
         self.base_url = f"{self.BASE_URL}/{self.ticker.lower()}"
 
     def _fetch_page(self, url: str) -> BeautifulSoup | None:
-        """Fetch and parse a page from stockanalysis.com.
-
-        Args:
-            url: Full URL to fetch
-
-        Returns:
-            BeautifulSoup object or None if fetch fails
-        """
         try:
             response = requests.get(url, headers=self.HEADERS, timeout=10)
             response.raise_for_status()
@@ -49,7 +29,6 @@ class StockanalysisConnector:
             return None
 
     def _parse_number(self, text: str) -> float | str:
-        """Parse text to number, handling various formats (1,234.56M, 52.72%, etc)."""
         if not isinstance(text, str):
             return text
 
@@ -79,7 +58,6 @@ class StockanalysisConnector:
             return text
 
     def _extract_table_data(self, soup: BeautifulSoup) -> pd.DataFrame | None:
-        """Extract financial table from HTML."""
         try:
             table = soup.find("table")
             if not table:
@@ -114,7 +92,6 @@ class StockanalysisConnector:
             return None
 
     def get_overview(self) -> dict[str, Any]:
-        """Get company overview and key metrics."""
         url = f"{self.base_url}/"
         soup = self._fetch_page(url)
 
@@ -147,7 +124,6 @@ class StockanalysisConnector:
         return overview_data
 
     def get_income_statement(self, period: str = "quarterly") -> pd.DataFrame | None:
-        """Get income statement data."""
         period_param = "yearly" if period == "annual" else "quarterly"
         url = f"{self.base_url}/financials/?p={period_param}"
 
@@ -171,7 +147,6 @@ class StockanalysisConnector:
         return df.set_index(df.columns[0]) if (df is not None and len(df) > 0) else None
 
     def get_cash_flow_statement(self, period: str = "quarterly") -> pd.DataFrame | None:
-        """Get cash flow statement data."""
         period_param = "yearly" if period == "annual" else "quarterly"
         url = f"{self.base_url}/financials/cash-flow-statement/?p={period_param}"
 
@@ -183,7 +158,6 @@ class StockanalysisConnector:
         return df.set_index(df.columns[0]) if (df is not None and len(df) > 0) else None
 
     def get_ratios(self, period: str = "quarterly") -> pd.DataFrame | None:
-        """Get financial ratios data."""
         period_param = "yearly" if period == "annual" else "quarterly"
         url = f"{self.base_url}/financials/ratios/?p={period_param}"
 
@@ -195,7 +169,6 @@ class StockanalysisConnector:
         return df.set_index(df.columns[0]) if (df is not None and len(df) > 0) else None
 
     def get_all_data(self, period: str = "quarterly") -> dict[str, Any]:
-        """Get all financial data in one call."""
         return {
             "overview": self.get_overview(),
             "income_statement": self.get_income_statement(period),

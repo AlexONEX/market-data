@@ -1,8 +1,3 @@
-"""
-Generic metric extractor that extracts data based on templates.
-Handles nested data structures and provides fallbacks.
-"""
-
 import logging
 from typing import Any
 
@@ -10,7 +5,6 @@ import pandas as pd
 
 from src.domain.metric_templates import (
     MetricDefinition,
-    SectorTemplate,
     get_template_for_sector,
 )
 
@@ -18,29 +12,13 @@ logger = logging.getLogger(__name__)
 
 
 class MetricExtractor:
-    """Extracts metrics from financial data using templates."""
-
     def __init__(self, data: dict[str, Any], sector: str = None):
-        """Initialize the extractor.
-
-        Args:
-            data: Dictionary with financial data (overview, income_statement, etc)
-            sector: Company sector for template selection
-        """
         self.data = data
         self.sector = sector or data.get("overview", {}).get("sector", "")
         self.template = get_template_for_sector(self.sector)
         logger.info(f"Using template: {self.template.name}")
 
     def extract_category(self, category_name: str) -> dict[str, Any]:
-        """Extract all metrics from a category.
-
-        Args:
-            category_name: Name of the category to extract
-
-        Returns:
-            Dictionary with {metric_name: (value, metric_type)}
-        """
         if category_name not in self.template.categories:
             logger.warning(f"Category '{category_name}' not found in template")
             return {}
@@ -60,11 +38,6 @@ class MetricExtractor:
         return results
 
     def extract_all_categories(self) -> dict[str, dict[str, Any]]:
-        """Extract all metrics from all categories.
-
-        Returns:
-            Dictionary with {category_name: {metric_name: (value, type)}}
-        """
         results = {}
 
         for category_name in self.template.categories.keys():
@@ -73,7 +46,6 @@ class MetricExtractor:
         return results
 
     def _extract_metric(self, metric_def: MetricDefinition) -> Any:
-        """Extract a single metric value using fallback keys."""
         value = self._get_nested_value(metric_def.data_key)
         if value is not None:
             return value
@@ -121,7 +93,6 @@ class MetricExtractor:
         return current
 
     def format_value(self, value: Any, metric_type: str) -> str:
-        """Format a value for display based on metric type."""
         if value is None or (isinstance(value, float) and pd.isna(value)):
             return "N/A"
 
@@ -161,14 +132,6 @@ class MetricExtractor:
             return str(value)
 
     def get_metric_table(self, category_name: str) -> pd.DataFrame:
-        """Get a metric category as a formatted DataFrame.
-
-        Args:
-            category_name: Name of the category
-
-        Returns:
-            DataFrame with columns: [Metric, Value, Type]
-        """
         metrics = self.extract_category(category_name)
 
         if not metrics:

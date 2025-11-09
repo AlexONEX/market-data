@@ -1,8 +1,3 @@
-"""
-Service for fetching financial data from multiple sources with fallback strategy.
-Primary: stockanalysis.com → Fallback: yfinance → FMP (peers only)
-"""
-
 import logging
 from typing import Any
 
@@ -15,23 +10,12 @@ logger = logging.getLogger(__name__)
 
 
 class FinancialDataService:
-    """Service for fetching financial data with multi-source fallback."""
-
     def __init__(self, fmp_api_key: str | None = None):
-        """Initialize the service.
-
-        Args:
-            fmp_api_key: Optional FMP API key for peer comparison
-        """
         self.fmp_api_key = fmp_api_key
 
     def get_company_data(
         self, ticker: str, period: str = "quarterly"
     ) -> dict[str, Any]:
-        """Get all company financial data.
-
-        Strategy: stockanalysis.com → yfinance → FMP (peers)
-        """
         result = {
             "ticker": ticker,
             "period": period,
@@ -106,7 +90,6 @@ class FinancialDataService:
         return result
 
     def _get_from_stockanalysis(self, ticker: str, period: str) -> dict[str, Any]:
-        """Fetch data from stockanalysis.com."""
         try:
             connector = StockanalysisConnector(ticker)
             data = connector.get_all_data(period=period)
@@ -116,7 +99,6 @@ class FinancialDataService:
             return {}
 
     def _get_from_yfinance(self, ticker: str, period: str) -> dict[str, Any]:
-        """Fetch data from yfinance as fallback."""
         try:
             stock = yf.Ticker(ticker)
             overview = {}
@@ -170,14 +152,13 @@ class FinancialDataService:
             return {}
 
     def _get_peers_from_fmp(self, ticker: str) -> list[str] | None:
-        """Fetch peer companies from FMP API."""
         if not self.fmp_api_key:
             return None
 
         try:
             import requests
 
-            url = f"https://financialmodelingprep.com/api/v4/stock_peers"
+            url = "https://financialmodelingprep.com/api/v4/stock_peers"
             params = {"symbol": ticker, "apikey": self.fmp_api_key}
 
             response = requests.get(url, params=params, timeout=5)
