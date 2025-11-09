@@ -185,7 +185,7 @@ class SheetsWriter:
             data = []
             for key, value_item in metadata.items():
                 if isinstance(value_item, (list, dict)):
-                processed_value = str(value_item)
+                    processed_value = str(value_item)
                 data.append([str(key), processed_value])
 
             worksheet.append_rows(data, table_range="A1")
