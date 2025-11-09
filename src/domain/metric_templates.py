@@ -1,13 +1,4 @@
-"""
-Metric templates for different sectors and asset types.
-Defines which metrics to extract and how to organize them for each type of company.
-"""
-
 from dataclasses import dataclass
-
-# ============================================================================
-# METRIC DEFINITIONS
-# ============================================================================
 
 
 @dataclass
