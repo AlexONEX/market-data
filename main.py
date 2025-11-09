@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 URL_BONDS = "https://data912.com/live/arg_bonds"
 URL_NOTES = "https://data912.com/live/arg_notes"
-OUTPUT_CSV = Path("src/data/tirs.csv")
+OUTPUT_CSV = Path("data/tirs.csv")
 
 BOND_TICKERS = {
     "hard_dollar": [
