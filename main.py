@@ -345,7 +345,7 @@ def main():
     plot_yield_curve(
         hard_dollar_bonds,
         "Hard Dollar Bonds Yield Curve",
-        "src/plots/yield_curve_hard_dollar.png",
+        "plots/yield_curve_hard_dollar.png",
         today,
     )
 
@@ -353,7 +353,7 @@ def main():
     plot_yield_curve(
         lecap_boncap_bonds,
         "LECAP/BONCAP Yield Curve",
-        "src/plots/yield_curve_fixed_rate_peso.png",
+        "plots/yield_curve_fixed_rate_peso.png",
         today,
     )
 
