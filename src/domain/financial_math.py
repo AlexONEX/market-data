@@ -105,6 +105,43 @@ def calculate_tir(
     return None
 
 
+def calculate_macaulay_duration(
+    cashflows: list[tuple[date, Decimal]], tir: Decimal, settlement_date: date
+) -> Decimal | None:
+    """
+    Calcula la Duración Macaulay de un bono.
+    """
+    if not cashflows or tir is None:
+        return None
+
+    present_value_sum = Decimal("0.0")
+    weighted_time_sum = Decimal("0.0")
+
+    for cf_date, cf_amount in cashflows:
+        if cf_date > settlement_date:
+            time_to_cashflow_years = Decimal((cf_date - settlement_date).days) / Decimal(
+                "365.0"
+            )
+            if time_to_cashflow_years <= 0:
+                continue
+
+            try:
+                discount_factor = (Decimal("1.0") + tir) ** time_to_cashflow_years
+                pv_cashflow = cf_amount / discount_factor
+                present_value_sum += pv_cashflow
+                weighted_time_sum += pv_cashflow * time_to_cashflow_years
+            except (InvalidOperation, DivisionByZero):
+                logger.error(
+                    "Error calculating discount factor or present value for cashflow."
+                )
+                return None
+
+    if present_value_sum == 0:
+        return None
+
+    return weighted_time_sum / present_value_sum
+
+
 def convert_tirea_to_tem(tirea_anual: Decimal) -> Decimal:
     if tirea_anual <= Decimal(-1):
         return Decimal(-1)
