@@ -12,7 +12,7 @@ import requests
 from requests.exceptions import RequestException
 from src.gateway.puentenet_connector import PuenteNetConnector
 
-from src.domain.financial_math import calculate_tir
+from src.domain.financial_math import calculate_tir, calculate_macaulay_duration
 
 # Minimal logging - only errors and critical info
 logging.basicConfig(level=logging.INFO)
@@ -90,9 +90,9 @@ def get_all_data912_instruments() -> dict[str, dict]:
     return instruments_by_ticker
 
 
-def _prepare_curve_data(points, is_lecap):
+def _prepare_curve_data(points, is_lecap, x_axis_key="time_to_maturity"):
     """Prepare time and rate data for curve plotting."""
-    times = np.array([p["time_to_maturity"] for p in points])
+    times = np.array([p[x_axis_key] for p in points])
 
     if is_lecap:
         # Convert TIR to TEM
@@ -153,13 +153,13 @@ def _plot_smooth_curve(curve_data: tuple, fit_data: tuple, *, label, color, is_l
         plt.plot(times, rates, linestyle="--", color=color, alpha=0.7)
 
 
-def _plot_single_curve(points, label, color, is_lecap):
+def _plot_single_curve(points, label, color, is_lecap, x_axis_key="time_to_maturity"):
     """Plots a single yield curve with optional smoothing and special handling for LECAP/BONCAP bonds."""
     if not points:
         return
 
-    points.sort(key=lambda x: x["time_to_maturity"])
-    times, rates, labels = _prepare_curve_data(points, is_lecap)
+    points.sort(key=lambda x: x[x_axis_key])
+    times, rates, labels = _prepare_curve_data(points, is_lecap, x_axis_key)
 
     plt.scatter(times, rates, label=f"{label} Points", color=color)
 
@@ -189,39 +189,42 @@ def plot_yield_curve(bond_data: list[dict], title: str, filename: str, today: da
         return
 
     is_lecap = "LECAP/BONCAP" in title
+    is_hard_dollar = "Hard Dollar" in title
 
     plt.figure(figsize=(14, 8))
     plt.title(title)
-    plt.xlabel("Time to Maturity (days)" if is_lecap else "Time to Maturity (years)")
-    if is_lecap:
+    
+    if is_hard_dollar:
+        plt.xlabel("Duration (years)")
+        plt.ylabel("TIR (%)")
+    elif is_lecap:
+        plt.xlabel("Time to Maturity (days)")
         plt.xscale("log")
-    plt.ylabel("TEM (%)" if is_lecap else "TIR (%)")
+        plt.ylabel("TEM (%)")
+    else:
+        plt.xlabel("Time to Maturity (years)")
+        plt.ylabel("TIR (%)")
+    
     plt.grid(visible=True)
 
-    if "Hard Dollar" in title:
+    if is_hard_dollar:
         global_bonds = []
         argentinian_law_bonds = []
         for bond in bond_data:
-            if bond.get("tir") is not None and bond.get("maturity_date") is not None:
-                time_to_maturity = (
-                    (bond["maturity_date"] - today).days
-                    if is_lecap
-                    else (bond["maturity_date"] - today).days / 365.25
-                )
-                if time_to_maturity > 0:
-                    point = {
-                        "ticker": bond["ticker"],
-                        "time_to_maturity": time_to_maturity,
-                        "tir": bond["tir"],
-                    }
-                    if bond["ticker"].startswith("GD"):
-                        global_bonds.append(point)
-                    else:
-                        argentinian_law_bonds.append(point)
+            if bond.get("tir") is not None and bond.get("duration") is not None:
+                point = {
+                    "ticker": bond["ticker"],
+                    "duration": float(bond["duration"]),
+                    "tir": bond["tir"],
+                }
+                if bond["ticker"].startswith("GD"):
+                    global_bonds.append(point)
+                else:
+                    argentinian_law_bonds.append(point)
 
-        _plot_single_curve(global_bonds, "Global Bonds", "blue", is_lecap)
+        _plot_single_curve(global_bonds, "Global Bonds", "blue", is_lecap, x_axis_key="duration")
         _plot_single_curve(
-            argentinian_law_bonds, "Argentinian Law Bonds", "green", is_lecap
+            argentinian_law_bonds, "Argentinian Law Bonds", "green", is_lecap, x_axis_key="duration"
         )
         plt.legend()
 
@@ -312,6 +315,11 @@ def main():
 
                 if tir is not None and maturity_date is not None:
                     tir_percentage = tir * Decimal(100)
+                    
+                    duration = calculate_macaulay_duration(
+                        cashflow, tir, today
+                    )
+
                     writer.writerow(
                         [
                             ticker_data912,
@@ -328,6 +336,7 @@ def main():
                             "price": normalized_price,
                             "tir": tir,
                             "maturity_date": maturity_date,
+                            "duration": duration,
                         }
                     )
                     processed_count += 1
@@ -336,7 +345,7 @@ def main():
     plot_yield_curve(
         hard_dollar_bonds,
         "Hard Dollar Bonds Yield Curve",
-        "src/plots/yield_curve_hard_dollar.png",
+        "plots/yield_curve_hard_dollar.png",
         today,
     )
 
@@ -344,7 +353,7 @@ def main():
     plot_yield_curve(
         lecap_boncap_bonds,
         "LECAP/BONCAP Yield Curve",
-        "src/plots/yield_curve_fixed_rate_peso.png",
+        "plots/yield_curve_fixed_rate_peso.png",
         today,
     )
 
