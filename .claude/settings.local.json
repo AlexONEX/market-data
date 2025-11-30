@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(mkdir:*)",
+      "Bash(npm install:*)",
+      "Bash(bash -c \"cd /home/mars/Github/projects/market-data/ts && npm --version\")",
+      "Bash(bash -c \"cd /home/mars/Github/projects/market-data/ts && npm install\" --timeout 120000)",
+      "Bash(bash -c \"cd /home/mars/Github/projects/market-data/ts && npm run type-check\")",
+      "Bash(bash -c \"cd /home/mars/Github/projects/market-data/ts && npm run format:check && echo ''✓ Formatting OK'' || echo ''✗ Formatting issues found''\")",
+      "Bash(bash -c \"cd /home/mars/Github/projects/market-data/ts && npm run format\":*)",
+      "Bash(bash -c \"cd /home/mars/Github/projects/market-data/ts && npm run lint 2>&1 | head -50\")",
+      "Bash(bash -c:*)",
+      "Bash(npm run format:*)",
+      "Bash(npm run type-check:*)",
+      "Bash(npm run lint)",
+      "Bash(/usr/bin/npm run format)",
+      "Bash(node debug-npv.js:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
