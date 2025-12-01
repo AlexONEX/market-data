@@ -12,7 +12,8 @@
     "format": "prettier --write 'ts/**/*.ts'",
     "format:check": "prettier --check 'ts/**/*.ts'",
     "type-check": "tsc --noEmit",
-    "check": "npm run type-check && npm run lint && npm run format:check"
+    "check": "npm run type-check && npm run lint && npm run format:check",
+    "test:yfinance": "tsc ts/test-yfinance.ts --outDir dist && node dist/test-yfinance.js"
   },
   "dependencies": {
     "axios": "^1.7.0",
