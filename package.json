@@ -8,8 +8,9 @@
     "market-data": "dist/cli/index.js"
   },
   "scripts": {
-    "build": "tsc && chmod +x dist/cli/index.js",
-    "dev": "tsx watch src/cli/index.ts",
+    "build": "tsc && tsc-esm-fix --ext .js && chmod +x dist/cli/index.js",
+    "dev": "npm run build && node dist/cli/index.js",
+    "dev:watch": "tsc --watch --noEmit",
     "start": "node dist/cli/index.js",
     "lint": "eslint src --ext .ts --cache",
     "lint:fix": "eslint src --ext .ts --cache --fix",
@@ -42,12 +43,11 @@
     "googleapis": "^118.0.0",
     "pino": "^8.16.2",
     "pino-pretty": "^10.2.3",
-    "prompts": "^2.4.2"
+    "yahoo-finance2": "^3.10.2"
   },
   "devDependencies": {
     "@types/jest": "^29.5.8",
     "@types/node": "^20.10.0",
-    "@types/prompts": "^2.4.9",
     "@typescript-eslint/eslint-plugin": "^6.13.2",
     "@typescript-eslint/parser": "^6.13.2",
     "eslint": "^8.54.0",
@@ -58,6 +58,7 @@
     "prettier": "^3.1.0",
     "ts-jest": "^29.1.1",
     "ts-node": "^10.9.2",
+    "tsc-esm-fix": "^3.1.2",
     "tsx": "^4.7.0",
     "typescript": "^5.3.3"
   },

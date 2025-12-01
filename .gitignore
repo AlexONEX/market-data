@@ -204,3 +204,10 @@ __marimo__/
 .DS_Store
 src/plots/*
 data/*
+
+# Node modules
+node_modules/
+dist/
+
+# IDE
+.eslintcache

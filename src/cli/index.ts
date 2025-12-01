@@ -8,6 +8,8 @@ import {
   promptStockData,
   promptCombined,
   promptContinue,
+  closePrompts,
+  initializeInput,
 } from "./prompts";
 import { handleBondYields, handleStockData, handleCombined } from "./handler";
 
@@ -16,6 +18,7 @@ initializeLogger(config);
 
 async function main(): Promise<number> {
   try {
+    await initializeInput();
     // eslint-disable-next-line no-console
     console.log("\n📊 Market Data Analysis Tool\n");
 
@@ -52,12 +55,21 @@ async function main(): Promise<number> {
       }
 
       if (continueLoop && mode !== "exit") {
-        continueLoop = await promptContinue();
+        try {
+          continueLoop = await promptContinue();
+        } catch {
+          // If prompt fails (e.g., stdin closed), exit gracefully
+          continueLoop = false;
+          // eslint-disable-next-line no-console
+          console.log("\n👋 Goodbye!\n");
+        }
       }
     }
 
+    closePrompts();
     return 0;
   } catch (error) {
+    closePrompts();
     console.error("\n❌ Error:", error instanceof Error ? error.message : String(error), "\n");
     return 1;
   }

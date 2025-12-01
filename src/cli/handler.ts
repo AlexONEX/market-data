@@ -1,9 +1,11 @@
 import { resolve } from "path";
+import { mkdir } from "fs/promises";
 import { getLogger } from "../utils/logger";
 import { CSVWriter } from "../utils/csvWriter";
 import { JSONWriter } from "../utils/jsonWriter";
 import { SheetsFormatter } from "../utils/sheetsFormatter";
 import { FinancialDataOrchestrator } from "../services/financialDataOrchestrator";
+import { StockDataFromSource } from "../gateway";
 import { BondYieldsInput, StockDataInput, CombinedInput } from "./types";
 
 const logger = getLogger();
@@ -75,25 +77,32 @@ export async function handleStockData(input: StockDataInput): Promise<void> {
       return;
     }
 
-    const rows = formatter.formatStockData(result.data);
-    const outputPath = resolve(
-      input.outputPath || `data/stock_${input.ticker}.${input.outputFormat}`,
+    const outputDir = resolve(
+      input.outputPath ||
+        `data/stock_${input.ticker.toLowerCase()}_${new Date().toISOString().split("T")[0]}`,
     );
 
     if (input.outputFormat === "csv") {
-      await csvWriter.write({
-        path: outputPath,
-        headers: Array.from(new Set(rows.flatMap((r) => Object.keys(r)))),
-        rows: rows.map((r) => Object.values(r)),
-      });
+      // Generate multiple CSVs like Python version
+      await generateStockCSVSheets(result.data, input.ticker, outputDir);
     } else {
+      // Generate JSON with full data
       await jsonWriter.write({
-        path: outputPath,
-        data: { ticker: input.ticker, period: input.period, data: rows },
+        path: `${outputDir}.json`,
+        data: {
+          ticker: input.ticker,
+          period: input.period,
+          overview: result.data.overview,
+          incomeStatement: result.data.incomeStatement,
+          balanceSheet: result.data.balanceSheet,
+          cashFlow: result.data.cashFlow,
+          ratios: result.data.ratios,
+          statistics: result.data.statistics,
+        },
       });
     }
 
-    logger.info({ path: outputPath, sections: rows.length }, "Stock data saved");
+    logger.info({ path: outputDir, source: result.source }, "Stock data saved successfully");
   } catch (error) {
     logger.error(
       { error: error instanceof Error ? error.message : String(error) },
@@ -101,6 +110,67 @@ export async function handleStockData(input: StockDataInput): Promise<void> {
     );
     throw error;
   }
+}
+
+async function generateStockCSVSheets(
+  data: StockDataFromSource,
+  _ticker: string,
+  baseDir: string,
+): Promise<void> {
+  const dir = resolve(baseDir, "..");
+  await mkdir(dir, { recursive: true });
+
+  // Overview Sheet
+  if (data.overview) {
+    const overviewRows = [
+      ["Field", "Value"],
+      ["Ticker", data.overview.ticker],
+      ["Name", data.overview.name || "N/A"],
+      ["Sector", data.overview.sector || "N/A"],
+      ["Market Cap", data.overview.marketCap || "N/A"],
+      ["P/E Ratio", data.overview.peRatio || "N/A"],
+      ["EPS", data.overview.eps || "N/A"],
+      ["Dividend Yield", data.overview.dividendYield || "N/A"],
+    ];
+
+    await csvWriter.write({
+      path: `${baseDir}/overview.csv`,
+      headers: ["Field", "Value"],
+      rows: overviewRows.slice(1), // Skip header row
+    });
+  }
+
+  // Income Statement Sheet
+  if (data.incomeStatement && data.incomeStatement.length > 0) {
+    const headers = Array.from(new Set(data.incomeStatement.flatMap((s) => Object.keys(s))));
+    await csvWriter.write({
+      path: `${baseDir}/income_statement.csv`,
+      headers,
+      rows: data.incomeStatement.map((stmt) => headers.map((h) => stmt[h] || "")),
+    });
+  }
+
+  // Balance Sheet
+  if (data.balanceSheet && data.balanceSheet.length > 0) {
+    const headers = Array.from(new Set(data.balanceSheet.flatMap((s) => Object.keys(s))));
+    await csvWriter.write({
+      path: `${baseDir}/balance_sheet.csv`,
+      headers,
+      rows: data.balanceSheet.map((stmt) => headers.map((h) => stmt[h] || "")),
+    });
+  }
+
+  // Cash Flow
+  if (data.cashFlow && data.cashFlow.length > 0) {
+    const headers = Array.from(new Set(data.cashFlow.flatMap((s) => Object.keys(s))));
+    await csvWriter.write({
+      path: `${baseDir}/cash_flow.csv`,
+      headers,
+      rows: data.cashFlow.map((stmt) => headers.map((h) => stmt[h] || "")),
+    });
+  }
+
+  logger.info({ baseDir }, "Generated multiple CSV sheets");
 }
 
 export async function handleCombined(input: CombinedInput): Promise<void> {
