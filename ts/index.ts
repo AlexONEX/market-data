@@ -7,4 +7,5 @@ export * from "./gateway/puentenetConnector";
 export * from "./gateway/data912Connector";
 export * from "./gateway/yahooFinanceConnector";
 export * from "./services/bondYieldService";
+export * from "./services/financialDataOrchestrator";
 export * from "./utils/csvWriter";

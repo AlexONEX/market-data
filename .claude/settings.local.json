@@ -4,7 +4,8 @@
       "Bash(node dist/test-yfinance.js:*)",
       "Bash(node dist/debug-yfinance.js:*)",
       "Bash(python3:*)",
-      "Bash(source .venv/bin/activate:*)"
+      "Bash(source .venv/bin/activate:*)",
+      "Bash(node dist/test-financial-data.js:*)"
     ],
     "deny": [],
     "ask": []
