@@ -18,19 +18,19 @@ export interface FinancialStatement {
 export class YahooFinanceConnector {
   async getQuote(ticker: string): Promise<YFinanceQuote | null> {
     try {
-      const quote = await yahooFinance.quote(ticker);
+      const quote = (await yahooFinance.quote(ticker)) as Record<string, unknown> | null;
       if (!quote) {
         return null;
       }
 
       return {
-        currency: quote.currency as string | undefined,
-        marketCap: quote.marketCap as number | undefined,
-        trailingPE: quote.trailingPE as number | undefined,
-        trailingEps: quote.trailingEps as number | undefined,
-        dividendYield: quote.dividendYield as number | undefined,
-        fiftyTwoWeekHigh: quote.fiftyTwoWeekHigh as number | undefined,
-        fiftyTwoWeekLow: quote.fiftyTwoWeekLow as number | undefined,
+        currency: quote["currency"] as string | undefined,
+        marketCap: quote["marketCap"] as number | undefined,
+        trailingPE: quote["trailingPE"] as number | undefined,
+        trailingEps: quote["trailingEps"] as number | undefined,
+        dividendYield: quote["dividendYield"] as number | undefined,
+        fiftyTwoWeekHigh: quote["fiftyTwoWeekHigh"] as number | undefined,
+        fiftyTwoWeekLow: quote["fiftyTwoWeekLow"] as number | undefined,
       };
     } catch {
       return null;
@@ -42,13 +42,13 @@ export class YahooFinanceConnector {
     period: "annual" | "quarterly" = "annual"
   ): Promise<FinancialStatement | null> {
     try {
-      const quoteSummary = await yahooFinance.quoteSummary(ticker, {
+      const quoteSummary = (await yahooFinance.quoteSummary(ticker, {
         modules: [
           period === "annual"
             ? "incomeStatementHistory"
             : "incomeStatementHistoryQuarterly",
         ],
-      });
+      })) as Record<string, unknown> | null;
 
       if (!quoteSummary) {
         return null;
@@ -56,9 +56,10 @@ export class YahooFinanceConnector {
 
       const statements =
         period === "annual"
-          ? quoteSummary.incomeStatementHistory?.incomeStatementHistory
-          : quoteSummary.incomeStatementHistoryQuarterly
-              ?.incomeStatementHistory;
+          ? (quoteSummary["incomeStatementHistory"] as Record<string, unknown> | undefined)
+              ?.["incomeStatementHistory"]
+          : (quoteSummary["incomeStatementHistoryQuarterly"] as Record<string, unknown> | undefined)
+              ?.["incomeStatementHistory"];
 
       if (!statements || !Array.isArray(statements)) {
         return null;
@@ -66,9 +67,10 @@ export class YahooFinanceConnector {
 
       const result: FinancialStatement = {};
       for (const stmt of statements) {
-        const endDate = stmt.endDate as string | undefined;
+        const stmtObj = stmt as Record<string, unknown>;
+        const endDate = stmtObj["endDate"] as string | undefined;
         if (endDate) {
-          result[endDate] = this.flattenStatement(stmt);
+          result[endDate] = this.flattenStatement(stmtObj);
         }
       }
 
@@ -83,11 +85,11 @@ export class YahooFinanceConnector {
     period: "annual" | "quarterly" = "annual"
   ): Promise<FinancialStatement | null> {
     try {
-      const quoteSummary = await yahooFinance.quoteSummary(ticker, {
+      const quoteSummary = (await yahooFinance.quoteSummary(ticker, {
         modules: [
           period === "annual" ? "balanceSheetHistory" : "balanceSheetHistoryQuarterly",
         ],
-      });
+      })) as Record<string, unknown> | null;
 
       if (!quoteSummary) {
         return null;
@@ -95,8 +97,10 @@ export class YahooFinanceConnector {
 
       const statements =
         period === "annual"
-          ? quoteSummary.balanceSheetHistory?.balanceSheetStatements
-          : quoteSummary.balanceSheetHistoryQuarterly?.balanceSheetStatements;
+          ? (quoteSummary["balanceSheetHistory"] as Record<string, unknown> | undefined)
+              ?.["balanceSheetStatements"]
+          : (quoteSummary["balanceSheetHistoryQuarterly"] as Record<string, unknown> | undefined)
+              ?.["balanceSheetStatements"];
 
       if (!statements || !Array.isArray(statements)) {
         return null;
@@ -104,9 +108,10 @@ export class YahooFinanceConnector {
 
       const result: FinancialStatement = {};
       for (const stmt of statements) {
-        const endDate = stmt.endDate as string | undefined;
+        const stmtObj = stmt as Record<string, unknown>;
+        const endDate = stmtObj["endDate"] as string | undefined;
         if (endDate) {
-          result[endDate] = this.flattenStatement(stmt);
+          result[endDate] = this.flattenStatement(stmtObj);
         }
       }
 
@@ -121,13 +126,13 @@ export class YahooFinanceConnector {
     period: "annual" | "quarterly" = "annual"
   ): Promise<FinancialStatement | null> {
     try {
-      const quoteSummary = await yahooFinance.quoteSummary(ticker, {
+      const quoteSummary = (await yahooFinance.quoteSummary(ticker, {
         modules: [
           period === "annual"
             ? "cashflowStatementHistory"
             : "cashflowStatementHistoryQuarterly",
         ],
-      });
+      })) as Record<string, unknown> | null;
 
       if (!quoteSummary) {
         return null;
@@ -135,8 +140,10 @@ export class YahooFinanceConnector {
 
       const statements =
         period === "annual"
-          ? quoteSummary.cashflowStatementHistory?.cashflowStatements
-          : quoteSummary.cashflowStatementHistoryQuarterly?.cashflowStatements;
+          ? (quoteSummary["cashflowStatementHistory"] as Record<string, unknown> | undefined)
+              ?.["cashflowStatements"]
+          : (quoteSummary["cashflowStatementHistoryQuarterly"] as Record<string, unknown> | undefined)
+              ?.["cashflowStatements"];
 
       if (!statements || !Array.isArray(statements)) {
         return null;
@@ -144,9 +151,10 @@ export class YahooFinanceConnector {
 
       const result: FinancialStatement = {};
       for (const stmt of statements) {
-        const endDate = stmt.endDate as string | undefined;
+        const stmtObj = stmt as Record<string, unknown>;
+        const endDate = stmtObj["endDate"] as string | undefined;
         if (endDate) {
-          result[endDate] = this.flattenStatement(stmt);
+          result[endDate] = this.flattenStatement(stmtObj);
         }
       }
 
@@ -165,10 +173,11 @@ export class YahooFinanceConnector {
       }
 
       if (typeof value === "object") {
-        if ("raw" in value && typeof (value as Record<string, unknown>).raw === "number") {
-          result[key] = ((value as Record<string, unknown>).raw as number);
-        } else if ("longFmt" in value) {
-          result[key] = ((value as Record<string, unknown>).longFmt as string);
+        const obj = value as Record<string, unknown>;
+        if ("raw" in obj && typeof obj["raw"] === "number") {
+          result[key] = obj["raw"] as number;
+        } else if ("longFmt" in obj) {
+          result[key] = obj["longFmt"] as string;
         } else {
           result[key] = String(value);
         }

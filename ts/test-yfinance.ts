@@ -19,7 +19,10 @@ async function testYahooFinance(): Promise<void> {
     const dates = Object.keys(incomeAnnual);
     console.log(`Found ${dates.length} income statements`);
     if (dates.length > 0) {
-      console.log(`First statement (${dates[0]}):`, JSON.stringify(incomeAnnual[dates[0]], null, 2).substring(0, 300));
+      const firstDate = dates[0];
+      if (firstDate !== undefined) {
+        console.log(`First statement (${firstDate}):`, JSON.stringify(incomeAnnual[firstDate], null, 2).substring(0, 300));
+      }
     }
   } else {
     console.log("No income statement data");
@@ -31,7 +34,10 @@ async function testYahooFinance(): Promise<void> {
     const dates = Object.keys(balanceAnnual);
     console.log(`Found ${dates.length} balance sheets`);
     if (dates.length > 0) {
-      console.log(`First statement (${dates[0]}):`, JSON.stringify(balanceAnnual[dates[0]], null, 2).substring(0, 300));
+      const firstDate = dates[0];
+      if (firstDate !== undefined) {
+        console.log(`First statement (${firstDate}):`, JSON.stringify(balanceAnnual[firstDate], null, 2).substring(0, 300));
+      }
     }
   } else {
     console.log("No balance sheet data");
@@ -43,7 +49,10 @@ async function testYahooFinance(): Promise<void> {
     const dates = Object.keys(cashFlowAnnual);
     console.log(`Found ${dates.length} cash flow statements`);
     if (dates.length > 0) {
-      console.log(`First statement (${dates[0]}):`, JSON.stringify(cashFlowAnnual[dates[0]], null, 2).substring(0, 300));
+      const firstDate = dates[0];
+      if (firstDate !== undefined) {
+        console.log(`First statement (${firstDate}):`, JSON.stringify(cashFlowAnnual[firstDate], null, 2).substring(0, 300));
+      }
     }
   } else {
     console.log("No cash flow data");

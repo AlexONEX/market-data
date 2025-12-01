@@ -5,5 +5,6 @@ export * from "./gateway/googleSheets";
 export * from "./gateway/excelWriter";
 export * from "./gateway/puentenetConnector";
 export * from "./gateway/data912Connector";
+export * from "./gateway/yahooFinanceConnector";
 export * from "./services/bondYieldService";
 export * from "./utils/csvWriter";
