@@ -1,4 +1,4 @@
-import { YahooFinanceConnector } from "./gateway/yahooFinanceConnector";
+import { YahooFinanceConnector } from "./gateway/yahooFinanceConnector.js";
 
 async function testYahooFinance(): Promise<void> {
   const connector = new YahooFinanceConnector();

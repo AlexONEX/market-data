@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node dist/test-yfinance.js:*)",
+      "Bash(node dist/debug-yfinance.js:*)",
+      "Bash(python3:*)",
+      "Bash(source .venv/bin/activate:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
